@@ -2,7 +2,7 @@
 """
 database.py - Database connection and initialization for CareSync.
 Uses SQLite with parameterized queries for safe persistence.
-Supports booking, filtering, cancellation, and rescheduling.
+Supports booking, filtering, cancellation, rescheduling, and emergency flags.
 """
 
 import os
@@ -31,10 +31,7 @@ def get_db_connection(db_path=None):
 
 
 def init_db(db_path=None):
-    """
-    Initialize tables and seed doctors when needed.
-    Safely migrates existing appointment databases.
-    """
+    """Initialize tables and safely migrate existing databases."""
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
 
@@ -65,12 +62,13 @@ def init_db(db_path=None):
                 consultation_type TEXT,
                 price INTEGER,
                 address TEXT,
+                is_emergency INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (doctor_id)
                     REFERENCES doctors (id) ON DELETE CASCADE
             )
         """)
 
-        # Add newer columns to databases created by older versions.
+        # Migrate databases created by earlier versions.
         existing_columns = {
             row["name"]
             for row in cursor.execute(
@@ -81,7 +79,8 @@ def init_db(db_path=None):
         new_columns = {
             "consultation_type": "TEXT",
             "price": "INTEGER",
-            "address": "TEXT"
+            "address": "TEXT",
+            "is_emergency": "INTEGER NOT NULL DEFAULT 0",
         }
 
         for column, column_type in new_columns.items():
@@ -91,7 +90,6 @@ def init_db(db_path=None):
                     f"ADD COLUMN {column} {column_type}"
                 )
 
-        # Add sample doctors only when the table is empty.
         cursor.execute("SELECT COUNT(*) AS count FROM doctors")
 
         if cursor.fetchone()["count"] == 0:
@@ -105,7 +103,7 @@ def init_db(db_path=None):
                 ("Dr. David Kim", "Orthopedics",
                  "10:00", "18:00", "Room 412"),
                 ("Dr. Priya Sharma", "General Medicine",
-                 "09:00", "17:00", "Room 102")
+                 "09:00", "17:00", "Room 102"),
             ]
 
             cursor.executemany("""
@@ -136,7 +134,6 @@ def get_all_doctors(db_path=None):
         rows = conn.execute(
             "SELECT * FROM doctors ORDER BY name ASC"
         ).fetchall()
-
         return [dict(row) for row in rows]
 
     finally:
@@ -152,7 +149,6 @@ def get_doctor_by_id(doctor_id, db_path=None):
             "SELECT * FROM doctors WHERE id = ?",
             (doctor_id,)
         ).fetchone()
-
         return dict(row) if row else None
 
     finally:
@@ -184,6 +180,7 @@ def get_appointments(
                 a.consultation_type,
                 a.price,
                 a.address,
+                a.is_emergency,
                 d.name AS doctor_name,
                 d.specialty AS doctor_specialty,
                 d.room_number AS doctor_room
@@ -237,6 +234,7 @@ def get_appointment_by_id(appointment_id, db_path=None):
                 a.consultation_type,
                 a.price,
                 a.address,
+                a.is_emergency,
                 d.name AS doctor_name,
                 d.specialty AS doctor_specialty,
                 d.room_number AS doctor_room
@@ -262,7 +260,8 @@ def insert_appointment(
     db_path=None,
     consultation_type="in_person",
     price=None,
-    address=""
+    address="",
+    is_emergency=False,
 ):
     """Insert an appointment and return its ID."""
     conn = get_db_connection(db_path)
@@ -283,9 +282,10 @@ def insert_appointment(
                 created_at,
                 consultation_type,
                 price,
-                address
+                address,
+                is_emergency
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED', ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED', ?, ?, ?, ?, ?)
         """, (
             patient_name,
             doctor_id,
@@ -297,7 +297,8 @@ def insert_appointment(
             now_str,
             consultation_type,
             price,
-            address
+            address,
+            1 if is_emergency else 0,
         ))
 
         conn.commit()
@@ -337,20 +338,10 @@ def update_appointment_schedule(
     duration_minutes,
     db_path=None
 ):
-    """
-    Update the schedule of an existing scheduled appointment.
-
-    Only the date, start time, end time, and duration are changed.
-    All patient and consultation details remain unchanged.
-
-    Returns:
-        (True, success_message) on success
-        (False, error_message) if the update cannot be performed
-    """
+    """Update the schedule of an existing scheduled appointment."""
     conn = get_db_connection(db_path)
 
     try:
-        # Acquire the SQLite write lock before checking and updating.
         conn.execute("BEGIN IMMEDIATE")
 
         appointment = conn.execute("""
@@ -390,7 +381,6 @@ def update_appointment_schedule(
             return False, "Appointment could not be rescheduled."
 
         conn.commit()
-
         return True, "Appointment rescheduled successfully."
 
     except Exception:
