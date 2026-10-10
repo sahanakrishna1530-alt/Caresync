@@ -2,6 +2,7 @@
 """
 database.py - Database connection and initialization for CareSync.
 Uses SQLite with parameterized queries for safe persistence.
+Supports booking, filtering, cancellation, and rescheduling.
 """
 
 import os
@@ -32,7 +33,7 @@ def get_db_connection(db_path=None):
 def init_db(db_path=None):
     """
     Initialize tables and seed doctors when needed.
-    Safely adds new columns to an existing appointments table.
+    Safely migrates existing appointment databases.
     """
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
@@ -69,7 +70,7 @@ def init_db(db_path=None):
             )
         """)
 
-        # Migrate existing databases without deleting appointment records.
+        # Add newer columns to databases created by older versions.
         existing_columns = {
             row["name"]
             for row in cursor.execute(
@@ -90,8 +91,9 @@ def init_db(db_path=None):
                     f"ADD COLUMN {column} {column_type}"
                 )
 
-        # Seed sample doctors only when there are no doctors.
+        # Add sample doctors only when the table is empty.
         cursor.execute("SELECT COUNT(*) AS count FROM doctors")
+
         if cursor.fetchone()["count"] == 0:
             sample_doctors = [
                 ("Dr. Sarah Jenkins", "Cardiology",
@@ -108,15 +110,20 @@ def init_db(db_path=None):
 
             cursor.executemany("""
                 INSERT INTO doctors (
-                    name, specialty, working_hours_start,
-                    working_hours_end, room_number
+                    name,
+                    specialty,
+                    working_hours_start,
+                    working_hours_end,
+                    room_number
                 ) VALUES (?, ?, ?, ?, ?)
             """, sample_doctors)
 
         conn.commit()
+
     except Exception:
         conn.rollback()
         raise
+
     finally:
         conn.close()
 
@@ -124,11 +131,14 @@ def init_db(db_path=None):
 def get_all_doctors(db_path=None):
     """Retrieve all doctors."""
     conn = get_db_connection(db_path)
+
     try:
         rows = conn.execute(
             "SELECT * FROM doctors ORDER BY name ASC"
         ).fetchall()
+
         return [dict(row) for row in rows]
+
     finally:
         conn.close()
 
@@ -136,19 +146,28 @@ def get_all_doctors(db_path=None):
 def get_doctor_by_id(doctor_id, db_path=None):
     """Retrieve one doctor by ID."""
     conn = get_db_connection(db_path)
+
     try:
         row = conn.execute(
             "SELECT * FROM doctors WHERE id = ?",
             (doctor_id,)
         ).fetchone()
+
         return dict(row) if row else None
+
     finally:
         conn.close()
 
 
-def get_appointments(db_path=None, doctor_id=None, date=None, status=None):
+def get_appointments(
+    db_path=None,
+    doctor_id=None,
+    date=None,
+    status=None
+):
     """Retrieve appointments with optional filters and doctor details."""
     conn = get_db_connection(db_path)
+
     try:
         query = """
             SELECT
@@ -170,8 +189,9 @@ def get_appointments(db_path=None, doctor_id=None, date=None, status=None):
                 d.room_number AS doctor_room
             FROM appointments a
             JOIN doctors d ON a.doctor_id = d.id
-            WHERE 1=1
+            WHERE 1 = 1
         """
+
         params = []
 
         if doctor_id is not None and doctor_id != "":
@@ -186,10 +206,13 @@ def get_appointments(db_path=None, doctor_id=None, date=None, status=None):
             query += " AND a.status = ?"
             params.append(status)
 
-        query += " ORDER BY a.appointment_date ASC, a.start_time ASC"
+        query += """
+            ORDER BY a.appointment_date ASC, a.start_time ASC
+        """
 
         rows = conn.execute(query, params).fetchall()
         return [dict(row) for row in rows]
+
     finally:
         conn.close()
 
@@ -197,6 +220,7 @@ def get_appointments(db_path=None, doctor_id=None, date=None, status=None):
 def get_appointment_by_id(appointment_id, db_path=None):
     """Retrieve one appointment with its doctor's details."""
     conn = get_db_connection(db_path)
+
     try:
         row = conn.execute("""
             SELECT
@@ -222,6 +246,7 @@ def get_appointment_by_id(appointment_id, db_path=None):
         """, (appointment_id,)).fetchone()
 
         return dict(row) if row else None
+
     finally:
         conn.close()
 
@@ -239,11 +264,9 @@ def insert_appointment(
     price=None,
     address=""
 ):
-    """
-    Insert an appointment and return its ID.
-    The scheduler should validate consultation type and price before calling.
-    """
+    """Insert an appointment and return its ID."""
     conn = get_db_connection(db_path)
+
     try:
         now_str = datetime.now().isoformat()
 
@@ -261,7 +284,8 @@ def insert_appointment(
                 consultation_type,
                 price,
                 address
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED', ?, ?, ?, ?)
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED', ?, ?, ?, ?)
         """, (
             patient_name,
             doctor_id,
@@ -278,13 +302,19 @@ def insert_appointment(
 
         conn.commit()
         return cursor.lastrowid
+
     finally:
         conn.close()
 
 
-def update_appointment_status(appointment_id, new_status, db_path=None):
+def update_appointment_status(
+    appointment_id,
+    new_status,
+    db_path=None
+):
     """Update an appointment's status."""
     conn = get_db_connection(db_path)
+
     try:
         cursor = conn.execute("""
             UPDATE appointments
@@ -294,5 +324,78 @@ def update_appointment_status(appointment_id, new_status, db_path=None):
 
         conn.commit()
         return cursor.rowcount > 0
+
+    finally:
+        conn.close()
+
+
+def update_appointment_schedule(
+    appointment_id,
+    appointment_date,
+    start_time,
+    end_time,
+    duration_minutes,
+    db_path=None
+):
+    """
+    Update the schedule of an existing scheduled appointment.
+
+    Only the date, start time, end time, and duration are changed.
+    All patient and consultation details remain unchanged.
+
+    Returns:
+        (True, success_message) on success
+        (False, error_message) if the update cannot be performed
+    """
+    conn = get_db_connection(db_path)
+
+    try:
+        # Acquire the SQLite write lock before checking and updating.
+        conn.execute("BEGIN IMMEDIATE")
+
+        appointment = conn.execute("""
+            SELECT status
+            FROM appointments
+            WHERE id = ?
+        """, (appointment_id,)).fetchone()
+
+        if not appointment:
+            conn.rollback()
+            return False, "Appointment not found."
+
+        if appointment["status"] != "SCHEDULED":
+            conn.rollback()
+            return False, (
+                "Only scheduled appointments can be rescheduled."
+            )
+
+        cursor = conn.execute("""
+            UPDATE appointments
+            SET appointment_date = ?,
+                start_time = ?,
+                end_time = ?,
+                duration_minutes = ?
+            WHERE id = ?
+              AND status = 'SCHEDULED'
+        """, (
+            appointment_date,
+            start_time,
+            end_time,
+            duration_minutes,
+            appointment_id
+        ))
+
+        if cursor.rowcount != 1:
+            conn.rollback()
+            return False, "Appointment could not be rescheduled."
+
+        conn.commit()
+
+        return True, "Appointment rescheduled successfully."
+
+    except Exception:
+        conn.rollback()
+        raise
+
     finally:
         conn.close()
