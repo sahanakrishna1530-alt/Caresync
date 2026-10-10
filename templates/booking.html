@@ -1,646 +1,334 @@
 ```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Appointment | CareSync</title>
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
+<script>
+    const form = document.getElementById("booking-form");
+    const typeSelect = document.getElementById("consultation-type");
+    const addressField = document.getElementById("address-field");
+    const addressInput = document.getElementById("home-address");
+    const emergencyInput = document.getElementById("is-emergency");
+    const priceLabel = document.getElementById("consultation-price");
+    const consultationName = document.getElementById("consultation-name");
+    const message = document.getElementById("booking-message");
+    const submitButton = document.getElementById("submit-button");
+    const availabilityButton = document.getElementById("check-availability");
 
-    <style>
-        :root {
-            --teal: #087f8c;
-            --teal-dark: #066570;
-            --text: #20323a;
-            --muted: #647780;
-            --border: #dce7e9;
-            --surface: #f5fbfb;
+    const prices = {{ consultation_prices | tojson }};
+
+    const names = {{ {
+        "video": "Video Visit",
+        "phone": "Phone Call",
+        "in_person": "In Person",
+        "home": "Home Visit"
+    } | tojson }};
+
+    let isSubmitting = false;
+    let isCheckingAvailability = false;
+
+    // Safely read a server response, including non-JSON error responses.
+    async function readResponse(response) {
+        const text = await response.text();
+
+        if (!text) {
+            return {};
         }
 
-        * {
-            box-sizing: border-box;
+        try {
+            return JSON.parse(text);
+        } catch {
+            throw new Error(
+                "The server returned an invalid response. Please check the Flask terminal."
+            );
+        }
+    }
+
+    function showMessage(text, type = "info") {
+        message.textContent = text;
+
+        message.style.color =
+            type === "error" ? "#b42318" :
+            type === "success" ? "#087f8c" :
+            "#20323a";
+    }
+
+    function updateConsultation() {
+        const type = typeSelect.value;
+        const isHomeVisit = type === "home";
+
+        addressField.hidden = !isHomeVisit;
+        addressInput.required = isHomeVisit;
+
+        if (!isHomeVisit) {
+            addressInput.value = "";
         }
 
-        body {
-            margin: 0;
-            background: #f8fbfc;
-            color: var(--text);
-            font-family: Arial, Helvetica, sans-serif;
+        if (Object.prototype.hasOwnProperty.call(prices, type)) {
+            priceLabel.textContent =
+                "Consultation fee: ₹" + prices[type];
+
+            consultationName.textContent = names[type];
+        } else {
+            priceLabel.textContent = "Price unavailable";
+            consultationName.textContent = "Select a consultation";
+        }
+    }
+
+    function getBookingData() {
+        return {
+            patient_name: document
+                .getElementById("patient-name").value.trim(),
+
+            doctor_id: document
+                .getElementById("doctor-id").value,
+
+            appointment_date: document
+                .getElementById("appointment-date").value,
+
+            start_time: document
+                .getElementById("start-time").value,
+
+            duration_minutes: Number(
+                document.getElementById("duration").value
+            ),
+
+            reason: document
+                .getElementById("reason").value.trim(),
+
+            consultation_type: typeSelect.value,
+
+            address: typeSelect.value === "home"
+                ? addressInput.value.trim()
+                : "",
+
+            is_emergency: emergencyInput.checked
+        };
+    }
+
+    function formatAlternative(slot) {
+        if (typeof slot === "string") {
+            return slot;
         }
 
-        .booking-page {
-            width: min(900px, calc(100% - 32px));
-            margin: 36px auto;
+        if (slot.display) {
+            return slot.display;
         }
 
-        .booking-header {
-            margin-bottom: 26px;
+        const date = slot.appointment_date || "";
+        const start = slot.start_time || "";
+        const end = slot.end_time || "";
+
+        if (date && start && end) {
+            return `${date}, ${start}–${end}`;
         }
 
-        .brand {
-            color: var(--teal);
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            text-decoration: none;
+        if (date && start) {
+            return `${date}, ${start}`;
         }
 
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: var(--teal);
-            text-decoration: none;
-            font-weight: 600;
+        if (start && end) {
+            return `${start}–${end}`;
         }
 
-        .booking-header h1 {
-            margin: 20px 0 8px;
-            font-size: clamp(28px, 5vw, 38px);
-            letter-spacing: -1px;
+        return start || date || "Alternative slot";
+    }
+
+    function validateAvailabilityFields(data) {
+        if (!data.doctor_id) {
+            showMessage("Please select a doctor.", "error");
+            document.getElementById("doctor-id").focus();
+            return false;
         }
 
-        .booking-header p {
-            color: var(--muted);
-            line-height: 1.6;
+        if (!data.appointment_date) {
+            showMessage("Please select an appointment date.", "error");
+            document.getElementById("appointment-date").focus();
+            return false;
         }
 
-        .booking-card {
-            padding: clamp(20px, 4vw, 36px);
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            box-shadow: 0 12px 36px rgba(28, 72, 80, 0.06);
+        if (!data.start_time) {
+            showMessage("Please select a start time.", "error");
+            document.getElementById("start-time").focus();
+            return false;
         }
 
-        .selected-consultation {
-            padding: 20px;
-            margin-bottom: 28px;
-            border: 1px solid #c9e7e8;
-            border-radius: 14px;
-            background: var(--surface);
+        if (!Number.isFinite(data.duration_minutes) ||
+            data.duration_minutes <= 0) {
+            showMessage("Please select a valid duration.", "error");
+            document.getElementById("duration").focus();
+            return false;
         }
 
-        .selected-consultation .eyebrow {
-            margin: 0 0 8px;
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+        const selectedDate = document.getElementById("appointment-date");
+
+        if (!selectedDate.checkValidity()) {
+            showMessage("Please select a valid date.", "error");
+            selectedDate.focus();
+            return false;
         }
 
-        .selected-consultation h2 {
-            margin: 0;
-            font-size: 24px;
+        return true;
+    }
+
+    typeSelect.addEventListener("change", updateConsultation);
+    updateConsultation();
+
+    // CHECK AVAILABILITY
+    availabilityButton.addEventListener("click", async () => {
+        if (isCheckingAvailability || isSubmitting) {
+            return;
         }
 
-        #consultation-price {
-            margin: 10px 0 0;
-            color: var(--teal-dark);
-            font-size: 20px;
-            font-weight: 700;
+        const data = getBookingData();
+
+        if (!validateAvailabilityFields(data)) {
+            return;
         }
 
-        .section-title {
-            margin: 0 0 20px;
-            font-size: 19px;
-        }
-
-        .booking-form {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px;
-        }
-
-        .form-field {
-            display: flex;
-            min-width: 0;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-field.full-width,
-        .booking-actions,
-        #booking-message {
-            grid-column: 1 / -1;
-        }
-
-        .form-field label {
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        .form-field input,
-        .form-field select,
-        .form-field textarea {
-            width: 100%;
-            min-height: 46px;
-            padding: 12px 13px;
-            border: 1px solid #d5dfe3;
-            border-radius: 9px;
-            background: #fff;
-            color: var(--text);
-            font: inherit;
-        }
-
-        .form-field textarea {
-            resize: vertical;
-        }
-
-        .form-field input:focus,
-        .form-field select:focus,
-        .form-field textarea:focus {
-            outline: 2px solid rgba(8, 127, 140, 0.18);
-            border-color: var(--teal);
-        }
-
-        .field-hint {
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .emergency-field {
-            padding: 16px;
-            border: 1px solid #f0d5d5;
-            border-radius: 12px;
-            background: #fffafa;
-        }
-
-        .emergency-label {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            line-height: 1.5;
-            cursor: pointer;
-        }
-
-        .emergency-label input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            min-height: 18px;
-            flex: 0 0 18px;
-            margin: 2px 0 0;
-            accent-color: #b42318;
-        }
-
-        .emergency-title {
-            color: #912018;
-            font-weight: 700;
-        }
-
-        .emergency-field .field-hint {
-            display: block;
-            margin: 10px 0 0 28px;
-        }
-
-        [hidden] {
-            display: none !important;
-        }
-
-        .booking-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 6px;
-        }
-
-        .booking-actions button {
-            min-height: 46px;
-            padding: 12px 20px;
-            border: 0;
-            border-radius: 9px;
-            cursor: pointer;
-            font: inherit;
-            font-weight: 700;
-        }
-
-        .primary-button {
-            background: var(--teal);
-            color: white;
-        }
-
-        .primary-button:hover {
-            background: var(--teal-dark);
-        }
-
-        .secondary-button {
-            background: #edf3f5;
-            color: var(--text);
-        }
-
-        .booking-actions button:disabled {
-            cursor: wait;
-            opacity: 0.65;
-        }
-
-        #booking-message {
-            min-height: 24px;
-            margin: 0;
-            color: var(--teal-dark);
-            line-height: 1.6;
-            overflow-wrap: anywhere;
-            white-space: pre-line;
-        }
-
-        .footer-note {
-            margin-top: 22px;
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.6;
-            text-align: center;
-        }
-
-        @media (max-width: 600px) {
-            .booking-page {
-                margin: 20px auto;
-            }
-
-            .booking-form {
-                grid-template-columns: 1fr;
-            }
-
-            .form-field.full-width,
-            .booking-actions,
-            #booking-message {
-                grid-column: 1;
-            }
-
-            .booking-actions {
-                flex-direction: column;
-            }
-
-            .booking-actions button {
-                width: 100%;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <main class="booking-page">
-        <header class="booking-header">
-            <a class="brand" href="/">CareSync</a>
-            <br>
-            <a class="back-link" href="/">&#8592; Back to home</a>
-
-            <h1>Book your appointment</h1>
-            <p>Right Patient. Right Doctor. Right Time.</p>
-        </header>
-
-        <section class="booking-card">
-            <section class="selected-consultation" aria-live="polite">
-                <p class="eyebrow">Your selected consultation</p>
-                <h2 id="consultation-name">{{ consultation_name }}</h2>
-                <p id="consultation-price">
-                    Consultation fee: &#8377;{{ consultation_price }}
-                </p>
-            </section>
-
-            <h3 class="section-title">Appointment details</h3>
-
-            <form id="booking-form" class="booking-form">
-                <div class="form-field full-width">
-                    <label for="consultation-type">Consultation type</label>
-
-                    <select id="consultation-type"
-                            name="consultation_type"
-                            required>
-                        <option value="video"
-                            {% if consultation_type == 'video' %}selected{% endif %}>
-                            Video Visit
-                        </option>
-                        <option value="phone"
-                            {% if consultation_type == 'phone' %}selected{% endif %}>
-                            Phone Call
-                        </option>
-                        <option value="in_person"
-                            {% if consultation_type == 'in_person' %}selected{% endif %}>
-                            In Person
-                        </option>
-                        <option value="home"
-                            {% if consultation_type == 'home' %}selected{% endif %}>
-                            Home Visit
-                        </option>
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="patient-name">Patient name</label>
-                    <input id="patient-name"
-                           name="patient_name"
-                           type="text"
-                           minlength="2"
-                           maxlength="100"
-                           autocomplete="name"
-                           required>
-                </div>
-
-                <div class="form-field">
-                    <label for="doctor-id">Choose doctor</label>
-                    <select id="doctor-id" name="doctor_id" required>
-                        <option value="">Select a doctor</option>
-                        {% for doctor in doctors %}
-                        <option value="{{ doctor.id }}">
-                            {{ doctor.name }} — {{ doctor.specialty }}
-                            ({{ doctor.room_number }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="appointment-date">Appointment date</label>
-                    <input id="appointment-date"
-                           name="appointment_date"
-                           type="date"
-                           min="{{ today }}"
-                           required>
-                </div>
-
-                <div class="form-field">
-                    <label for="start-time">Start time</label>
-                    <input id="start-time"
-                           name="start_time"
-                           type="time"
-                           required>
-                    <span class="field-hint">
-                        Doctor availability and working hours apply.
-                    </span>
-                </div>
-
-                <div class="form-field">
-                    <label for="duration">Duration</label>
-                    <select id="duration" name="duration_minutes" required>
-                        <option value="15">15 minutes</option>
-                        <option value="30" selected>30 minutes</option>
-                        <option value="45">45 minutes</option>
-                        <option value="60">60 minutes</option>
-                    </select>
-                </div>
-
-                <div class="form-field" id="address-field" hidden>
-                    <label for="home-address">Home visit address</label>
-                    <input id="home-address"
-                           name="address"
-                           type="text"
-                           maxlength="250"
-                           autocomplete="street-address"
-                           placeholder="Enter the complete visit address">
-                    <span class="field-hint">
-                        Required only for a Home Visit.
-                    </span>
-                </div>
-
-                <div class="form-field full-width">
-                    <label for="reason">Reason for visit</label>
-                    <textarea id="reason"
-                              name="reason"
-                              rows="3"
-                              maxlength="1000"
-                              placeholder="Briefly describe the reason for your appointment"></textarea>
-                </div>
-
-                <!-- Emergency-awareness flag -->
-                <div class="form-field full-width emergency-field">
-                    <label class="emergency-label" for="is-emergency">
-                        <input id="is-emergency"
-                               name="is_emergency"
-                               type="checkbox"
-                               value="true">
-                        <span class="emergency-title">
-                            This appointment request may need urgent attention
-                        </span>
-                    </label>
-
-                    <span class="field-hint">
-                        Selecting this option flags the request for staff
-                        awareness. It does not provide medical triage or
-                        guarantee priority or immediate treatment. For a
-                        potentially life-threatening emergency, seek
-                        emergency medical care immediately instead of
-                        waiting for an appointment.
-                    </span>
-                </div>
-
-                <div class="booking-actions">
-                    <button class="primary-button"
-                            id="submit-button"
-                            type="submit">
-                        Confirm Appointment
-                    </button>
-
-                    <button class="secondary-button"
-                            id="check-availability"
-                            type="button">
-                        Check Availability
-                    </button>
-                </div>
-
-                <p id="booking-message"
-                   role="status"
-                   aria-live="polite"></p>
-            </form>
-        </section>
-
-        <p class="footer-note">
-            CareSync appointment scheduling prototype.
-            Consultation fees are displayed in Indian rupees.
-        </p>
-    </main>
-
-    <script>
-        const form = document.getElementById("booking-form");
-        const typeSelect = document.getElementById("consultation-type");
-        const addressField = document.getElementById("address-field");
-        const addressInput = document.getElementById("home-address");
-        const emergencyInput = document.getElementById("is-emergency");
-        const priceLabel = document.getElementById("consultation-price");
-        const consultationName = document.getElementById("consultation-name");
-        const message = document.getElementById("booking-message");
-        const submitButton = document.getElementById("submit-button");
-        const availabilityButton = document.getElementById("check-availability");
-
-        const prices = {{ consultation_prices | tojson }};
-
-        const names = {{ {
-            "video": "Video Visit",
-            "phone": "Phone Call",
-            "in_person": "In Person",
-            "home": "Home Visit"
-        } | tojson }};
-
-        function updateConsultation() {
-            const type = typeSelect.value;
-            const isHomeVisit = type === "home";
-
-            addressField.hidden = !isHomeVisit;
-            addressInput.required = isHomeVisit;
-
-            if (!isHomeVisit) {
-                addressInput.value = "";
-            }
-
-            if (Object.prototype.hasOwnProperty.call(prices, type)) {
-                priceLabel.textContent = "Consultation fee: ₹" + prices[type];
-                consultationName.textContent = names[type];
-            } else {
-                priceLabel.textContent = "Price unavailable";
-                consultationName.textContent = "Select a consultation";
-            }
-        }
-
-        function getBookingData() {
-            return {
-                patient_name: document.getElementById("patient-name").value.trim(),
-                doctor_id: document.getElementById("doctor-id").value,
-                appointment_date: document.getElementById("appointment-date").value,
-                start_time: document.getElementById("start-time").value,
-                duration_minutes: Number(
-                    document.getElementById("duration").value
-                ),
-                reason: document.getElementById("reason").value.trim(),
-                consultation_type: typeSelect.value,
-                address: typeSelect.value === "home"
-                    ? addressInput.value.trim()
-                    : "",
-                is_emergency: emergencyInput.checked
-            };
-        }
-
-        function formatAlternative(slot) {
-            if (slot.display) {
-                return slot.display;
-            }
-
-            const date = slot.appointment_date || "";
-            const start = slot.start_time || "";
-            const end = slot.end_time || "";
-
-            if (date && start && end) {
-                return `${date}, ${start}–${end}`;
-            }
-
-            if (date && start) {
-                return `${date}, ${start}`;
-            }
-
-            if (start && end) {
-                return `${start}–${end}`;
-            }
-
-            return start || date || "Alternative slot";
-        }
-
-        typeSelect.addEventListener("change", updateConsultation);
-        updateConsultation();
-
-        availabilityButton.addEventListener("click", async () => {
-            const data = getBookingData();
-
-            if (!data.doctor_id ||
-                !data.appointment_date ||
-                !data.start_time) {
-                message.textContent =
-                    "Please select a doctor, date, and time first.";
-                return;
-            }
-
-            message.textContent = "Checking availability...";
-            availabilityButton.disabled = true;
-
-            try {
-                const params = new URLSearchParams({
-                    doctor_id: data.doctor_id,
-                    date: data.appointment_date,
-                    time: data.start_time,
-                    duration: String(data.duration_minutes)
-                });
-
-                const response = await fetch(
-                    "/api/check-availability?" + params.toString()
-                );
-
-                const result = await response.json();
-
-                if (!response.ok || !result.success) {
-                    message.textContent =
-                        result.message || "Unable to check availability.";
-                    return;
-                }
-
-                message.textContent = result.message ||
-                    (result.available
-                        ? "This time is available."
-                        : "This time is not available.");
-
-                if (!result.available && result.alternatives?.length) {
-                    const alternatives = result.alternatives
-                        .map(formatAlternative)
-                        .join(", ");
-
-                    message.textContent +=
-                        "\nSuggested alternatives: " + alternatives;
-                }
-            } catch (error) {
-                message.textContent =
-                    "Could not check availability. Please try again.";
-            } finally {
-                availabilityButton.disabled = false;
-            }
-        });
-
-        form.addEventListener("submit", async (event) => {
-            event.preventDefault();
-
-            if (!form.reportValidity()) {
-                return;
-            }
-
-            const data = getBookingData();
-
-            if (data.consultation_type === "home" && !data.address) {
-                message.textContent =
-                    "Please enter the home visit address.";
-                addressInput.focus();
-                return;
-            }
-
-            message.textContent = "Submitting appointment...";
-            submitButton.disabled = true;
-            availabilityButton.disabled = true;
-
-            try {
-                const response = await fetch("/api/appointments", {
-                    method: "POST",
+        isCheckingAvailability = true;
+        availabilityButton.disabled = true;
+
+        showMessage("Checking doctor availability...");
+
+        try {
+            const params = new URLSearchParams({
+                doctor_id: data.doctor_id,
+                date: data.appointment_date,
+                time: data.start_time,
+                duration: String(data.duration_minutes)
+            });
+
+            const response = await fetch(
+                "/api/check-availability?" + params.toString(),
+                {
+                    method: "GET",
                     headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(data)
-                });
+                        "Accept": "application/json"
+                    }
+                }
+            );
 
-                const result = await response.json();
+            const result = await readResponse(response);
 
-                if (response.ok && result.success) {
-                    message.textContent =
-                        "Appointment booked successfully. Opening dashboard...";
-                    window.location.href = "/dashboard";
-                    return;
+            if (!response.ok || result.success === false) {
+                showMessage(
+                    result.message ||
+                    result.error ||
+                    `Availability check failed (HTTP ${response.status}).`,
+                    "error"
+                );
+                return;
+            }
+
+            if (typeof result.available !== "boolean") {
+                showMessage(
+                    result.message ||
+                    "The server did not return an availability status. Please check the Flask API response.",
+                    "error"
+                );
+                return;
+            }
+
+            if (result.available) {
+                showMessage(
+                    result.message || "This appointment slot is available.",
+                    "success"
+                );
+            } else {
+                let text = result.message ||
+                    "This appointment slot is not available.";
+
+                if (Array.isArray(result.alternatives) &&
+                    result.alternatives.length > 0) {
+                    text += "\nSuggested alternatives: " +
+                        result.alternatives.map(formatAlternative).join(", ");
                 }
 
-                message.textContent = result.message ||
-                    result.error ||
-                    "Booking failed. Please review your details and try again.";
-            } catch (error) {
-                message.textContent =
-                    "Could not submit the booking. Please try again.";
-            } finally {
-                submitButton.disabled = false;
-                availabilityButton.disabled = false;
+                showMessage(text, "error");
             }
-        });
-    </script>
-</body>
-</html>
+        } catch (error) {
+            showMessage(
+                error.message ||
+                "Could not check availability. Please try again.",
+                "error"
+            );
+        } finally {
+            isCheckingAvailability = false;
+            availabilityButton.disabled = false;
+        }
+    });
+
+    // CONFIRM APPOINTMENT
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (isSubmitting || isCheckingAvailability) {
+            return;
+        }
+
+        if (!form.reportValidity()) {
+            return;
+        }
+
+        const data = getBookingData();
+
+        if (!data.patient_name || data.patient_name.length < 2) {
+            showMessage("Please enter the patient's full name.", "error");
+            document.getElementById("patient-name").focus();
+            return;
+        }
+
+        if (data.consultation_type === "home" && !data.address) {
+            showMessage("Please enter the home visit address.", "error");
+            addressInput.focus();
+            return;
+        }
+
+        isSubmitting = true;
+        submitButton.disabled = true;
+        availabilityButton.disabled = true;
+
+        showMessage("Submitting your appointment...");
+
+        try {
+            const response = await fetch("/api/appointments", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await readResponse(response);
+
+            if (!response.ok || result.success !== true) {
+                showMessage(
+                    result.message ||
+                    result.error ||
+                    `Booking failed (HTTP ${response.status}). Please check your details.`,
+                    "error"
+                );
+                return;
+            }
+
+            showMessage(
+                result.message ||
+                "Appointment booked successfully. Opening dashboard...",
+                "success"
+            );
+
+            // Redirect only after the API confirms a successful booking.
+            window.location.assign("/dashboard");
+
+        } catch (error) {
+            showMessage(
+                error.message ||
+                "Could not submit the appointment. Please try again.",
+                "error"
+            );
+        } finally {
+            isSubmitting = false;
+            submitButton.disabled = false;
+            availabilityButton.disabled = false;
+        }
+    });
+</script>
 ```
