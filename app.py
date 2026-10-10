@@ -6,6 +6,7 @@ Flask application routes and REST API.
 
 import os
 from datetime import date
+
 from flask import Flask, render_template, request, jsonify
 
 from database import (
@@ -13,16 +14,21 @@ from database import (
     get_all_doctors,
     get_appointments,
 )
+
 from scheduler import (
     book_appointment,
     cancel_appointment,
+    reschedule_appointment,
     check_doctor_availability,
     find_alternative_slots,
 )
 
+
 app = Flask(__name__)
+
 app.config["SECRET_KEY"] = os.environ.get(
-    "SECRET_KEY", "caresync-hackathon-secret-key-2026"
+    "SECRET_KEY",
+    "caresync-hackathon-secret-key-2026",
 )
 
 with app.app_context():
@@ -49,7 +55,7 @@ def index():
     )
 
 
-# -------------------- SEPARATE BOOKING PAGE --------------------
+# -------------------- BOOKING PAGE --------------------
 
 @app.route("/book")
 def booking():
@@ -62,7 +68,10 @@ def booking():
         "home": "Home Visit",
     }
 
-    consultation_type = request.args.get("type", "in_person")
+    consultation_type = request.args.get(
+        "type",
+        "in_person",
+    )
 
     if consultation_type not in consultation_names:
         consultation_type = "in_person"
@@ -87,15 +96,17 @@ def dashboard():
     metrics = {
         "total": len(appointments),
         "scheduled": sum(
-            1 for a in appointments if a["status"] == "SCHEDULED"
+            1 for appointment in appointments
+            if appointment["status"] == "SCHEDULED"
         ),
         "cancelled": sum(
-            1 for a in appointments if a["status"] == "CANCELLED"
+            1 for appointment in appointments
+            if appointment["status"] == "CANCELLED"
         ),
         "today": sum(
-            1 for a in appointments
-            if a["appointment_date"] == today_str
-            and a["status"] == "SCHEDULED"
+            1 for appointment in appointments
+            if appointment["appointment_date"] == today_str
+            and appointment["status"] == "SCHEDULED"
         ),
         "doctors_count": len(doctors),
     }
@@ -119,7 +130,7 @@ def api_get_doctors():
     })
 
 
-# -------------------- APPOINTMENT API --------------------
+# -------------------- APPOINTMENT LIST API --------------------
 
 @app.route("/api/appointments", methods=["GET"])
 def api_get_appointments():
@@ -142,9 +153,15 @@ def api_get_appointments():
     })
 
 
+# -------------------- BOOK APPOINTMENT API --------------------
+
 @app.route("/api/appointments", methods=["POST"])
 def api_book_appointment():
-    data = request.get_json(silent=True) if request.is_json else request.form
+    data = (
+        request.get_json(silent=True)
+        if request.is_json
+        else request.form
+    )
 
     if data is None:
         return jsonify({
@@ -159,6 +176,13 @@ def api_book_appointment():
     duration_minutes = data.get("duration_minutes", 30)
     reason = data.get("reason", "").strip()
 
+    # Keep consultation details when supplied by the frontend.
+    consultation_type = data.get(
+        "consultation_type",
+        "in_person",
+    )
+    address = data.get("address", "").strip()
+
     result = book_appointment(
         patient_name=patient_name,
         doctor_id=doctor_id,
@@ -166,6 +190,8 @@ def api_book_appointment():
         start_time=start_time,
         duration_minutes=duration_minutes,
         reason=reason,
+        consultation_type=consultation_type,
+        address=address,
     )
 
     if result["success"]:
@@ -174,8 +200,13 @@ def api_book_appointment():
     if result.get("error_type") == "VALIDATION_ERROR":
         return jsonify(result), 400
 
+    if result.get("error_type") == "DATABASE_ERROR":
+        return jsonify(result), 500
+
     return jsonify(result), 409
 
+
+# -------------------- CANCEL APPOINTMENT API --------------------
 
 @app.route(
     "/api/appointments/<int:appointment_id>/cancel",
@@ -187,7 +218,82 @@ def api_cancel_appointment(appointment_id):
     if result["success"]:
         return jsonify(result), 200
 
-    return jsonify(result), 400
+    status_code = (
+        404
+        if result.get("message") == "Appointment not found."
+        else 400
+    )
+
+    return jsonify(result), status_code
+
+
+# -------------------- RESCHEDULE APPOINTMENT API --------------------
+
+@app.route(
+    "/api/appointments/<int:appointment_id>/reschedule",
+    methods=["POST"],
+)
+def api_reschedule_appointment(appointment_id):
+    """
+    Reschedule an existing appointment.
+
+    Expected JSON:
+    {
+        "appointment_date": "YYYY-MM-DD",
+        "start_time": "HH:MM",
+        "duration_minutes": 30
+    }
+    """
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "success": False,
+            "error_type": "VALIDATION_ERROR",
+            "message": "Please provide appointment details as JSON.",
+        }), 400
+
+    appointment_date = data.get("appointment_date")
+    start_time = data.get("start_time")
+    duration_minutes = data.get("duration_minutes", 30)
+
+    if not isinstance(appointment_date, str) or not appointment_date.strip():
+        return jsonify({
+            "success": False,
+            "error_type": "VALIDATION_ERROR",
+            "message": "Appointment date is required.",
+        }), 400
+
+    if not isinstance(start_time, str) or not start_time.strip():
+        return jsonify({
+            "success": False,
+            "error_type": "VALIDATION_ERROR",
+            "message": "Appointment start time is required.",
+        }), 400
+
+    result = reschedule_appointment(
+        appointment_id=appointment_id,
+        appointment_date=appointment_date.strip(),
+        start_time=start_time.strip(),
+        duration_minutes=duration_minutes,
+    )
+
+    if result["success"]:
+        return jsonify(result), 200
+
+    error_type = result.get("error_type")
+
+    if error_type == "NOT_FOUND":
+        status_code = 404
+    elif error_type in ("VALIDATION_ERROR", "INVALID_STATUS"):
+        status_code = 400
+    elif error_type in ("CONFLICT", "UNAVAILABLE"):
+        status_code = 409
+    else:
+        status_code = 500
+
+    return jsonify(result), status_code
 
 
 # -------------------- AVAILABILITY API --------------------
@@ -197,7 +303,11 @@ def api_check_availability():
     doctor_id = request.args.get("doctor_id", type=int)
     appointment_date = request.args.get("date")
     start_time = request.args.get("time")
-    duration_minutes = request.args.get("duration", default=30, type=int)
+    duration_minutes = request.args.get(
+        "duration",
+        default=30,
+        type=int,
+    )
 
     if not (doctor_id and appointment_date and start_time):
         return jsonify({
@@ -244,15 +354,17 @@ def api_get_stats():
         "stats": {
             "total": len(appointments),
             "scheduled": sum(
-                1 for a in appointments if a["status"] == "SCHEDULED"
+                1 for appointment in appointments
+                if appointment["status"] == "SCHEDULED"
             ),
             "cancelled": sum(
-                1 for a in appointments if a["status"] == "CANCELLED"
+                1 for appointment in appointments
+                if appointment["status"] == "CANCELLED"
             ),
             "today": sum(
-                1 for a in appointments
-                if a["appointment_date"] == today_str
-                and a["status"] == "SCHEDULED"
+                1 for appointment in appointments
+                if appointment["appointment_date"] == today_str
+                and appointment["status"] == "SCHEDULED"
             ),
             "doctors": len(doctors),
         },
@@ -291,5 +403,8 @@ def server_error(error):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"Starting CareSync on http://127.0.0.1:{port}")
-    app.run(host="127.0.0.1", port=port, debug=True)
+    app.run(
+        host="127.0.0.1",
+        port=port,
+        debug=True,
+    )
