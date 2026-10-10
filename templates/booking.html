@@ -469,21 +469,20 @@
         }
 
         function getBookingData() {
-            return {
-                patient_name: document.getElementById("patient-name").value.trim(),
-                doctor_id: document.getElementById("doctor-id").value,
-                appointment_date: document.getElementById("appointment-date").value,
-                start_time: document.getElementById("start-time").value,
-                duration_minutes: Number(document.getElementById("duration").value),
-                reason: document.getElementById("reason").value.trim(),
-                consultation_type: typeSelect.value,
-                address: typeSelect.value === "home"
-                    ? addressInput.value.trim()
-                    : ""
-                                is_emergency:
-                    document.getElementById("is-emergency").checked
-            };
-        }
+    return {
+        patient_name: document.getElementById("patient-name").value.trim(),
+        doctor_id: document.getElementById("doctor-id").value,
+        appointment_date: document.getElementById("appointment-date").value,
+        start_time: document.getElementById("start-time").value,
+        duration_minutes: Number(document.getElementById("duration").value),
+        reason: document.getElementById("reason").value.trim(),
+        consultation_type: typeSelect.value,
+        address: typeSelect.value === "home"
+            ? addressInput.value.trim()
+            : "",
+        is_emergency: document.getElementById("is-emergency").checked
+    };
+}
 
         typeSelect.addEventListener("change", updateConsultation);
         updateConsultation();
