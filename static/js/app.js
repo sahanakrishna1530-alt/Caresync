@@ -413,10 +413,20 @@ function initRescheduling() {
 
     if (!form || !panel) return;
 
+    // Attach click handlers to buttons rendered by Flask initially.
+    document.querySelectorAll(
+        "#appointments-tbody [data-reschedule-id]"
+    ).forEach(button => {
+        button.addEventListener("click", () => {
+            openRescheduleForm(button);
+        });
+    });
+
     form.addEventListener("submit", handleRescheduleSubmit);
 
     closeButton?.addEventListener("click", closeRescheduleForm);
 }
+
 
 function openRescheduleForm(button) {
     const panel = document.getElementById("reschedule-panel");
