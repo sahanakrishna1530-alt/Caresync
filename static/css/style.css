@@ -1,901 +1,377 @@
-/* CareSync - Modern Healthcare UI Stylesheet */
+
+/* =========================================
+   CARESYNC HOMEPAGE — ELEGANT TEAL THEME
+   ========================================= */
 
 :root {
-    --primary: #1e40af;
-    --primary-hover: #1d4ed8;
-    --primary-light: #eff6ff;
-    --primary-border: #bfdbfe;
-    
-    --secondary: #0f766e;
-    --secondary-hover: #115e59;
-    --secondary-light: #f0fdfa;
-    
-    --success: #15803d;
-    --success-bg: #f0fdf4;
-    --success-border: #bbf7d0;
-    
-    --danger: #b91c1c;
-    --danger-bg: #fef2f2;
-    --danger-border: #fecaca;
-    
-    --warning: #b45309;
-    --warning-bg: #fffbeb;
-    --warning-border: #fde68a;
-    
-    --bg-main: #f8fafc;
-    --card-bg: #ffffff;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 14px;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    --primary: #137c75;
+    --primary-hover: #0f625d;
+    --primary-light: #e8f5f3;
+    --primary-border: #c6e5e1;
+    --secondary: #137c75;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--bg-main);
-    color: var(--text-main);
-    line-height: 1.5;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Navbar */
-.navbar {
-    background-color: #ffffff;
-    border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    box-shadow: var(--shadow-sm);
-}
-
-.nav-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0.85rem 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
+/* Brand */
 .brand {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    text-decoration: none;
-    color: var(--text-main);
+    gap: 10px;
 }
 
 .brand-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    background: linear-gradient(135deg, #2563eb, #0d9488);
-    color: #ffffff;
-    font-size: 1.2rem;
-    font-weight: 700;
-    border-radius: var(--radius-sm);
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #188e85, #0c625d);
+    box-shadow: 0 4px 12px rgba(19, 124, 117, 0.18);
 }
 
 .brand-text {
-    font-size: 1.35rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #1e3a8a;
+    color: #164e4a;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.7px;
 }
 
-.brand-badge {
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    background-color: var(--primary-light);
-    color: var(--primary);
-    padding: 0.2rem 0.5rem;
-    border-radius: 9999px;
-    border: 1px solid var(--primary-border);
-}
-
-.nav-links {
-    display: flex;
-    gap: 0.75rem;
-}
-
-.nav-link {
-    text-decoration: none;
-    color: var(--text-muted);
-    font-weight: 500;
-    font-size: 0.92rem;
-    padding: 0.5rem 0.9rem;
-    border-radius: var(--radius-sm);
-    transition: all 0.15s ease-in-out;
-}
-
-.nav-link:hover {
-    color: var(--primary);
-    background-color: var(--primary-light);
-}
-
-.nav-link.active {
-    color: var(--primary);
-    background-color: var(--primary-light);
-    font-weight: 600;
-}
-
-/* Main Container */
+/* Main page spacing */
 .main-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem;
-    flex: 1;
-    width: 100%;
+    max-width: 1240px;
+    padding-top: 38px;
+    padding-bottom: 48px;
 }
 
-/* Hero Section */
+/* CareSync introduction */
 .hero-section {
-    text-align: center;
-    margin-bottom: 2.25rem;
+    margin-bottom: 34px;
+    padding: 18px 16px 8px;
 }
 
 .hero-badge {
-    display: inline-block;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #0d9488;
-    background-color: #ccfbf1;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    margin-bottom: 0.75rem;
+    color: #137c75;
+    background: #e2f4f0;
+    border: 1px solid #c7e8e1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    padding: 7px 13px;
+    margin-bottom: 17px;
 }
 
 .hero-title {
-    font-size: 2.1rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: #0f172a;
-    margin-bottom: 0.5rem;
+    color: #164e4a;
+    font-size: clamp(2.5rem, 5vw, 3.7rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -2px;
+    margin-bottom: 10px;
 }
 
 .hero-subtitle {
-    font-size: 1.05rem;
-    color: var(--text-muted);
-    max-width: 650px;
-    margin: 0 auto;
-}
-
-/* Dashboard Header */
-.dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.75rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.page-title {
-    font-size: 1.85rem;
+    color: #137c75;
+    font-size: clamp(1.05rem, 2.5vw, 1.35rem);
     font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #0f172a;
+    letter-spacing: 0.1px;
+    margin: 0 auto 12px;
 }
 
-.page-subtitle {
-    font-size: 0.95rem;
-    color: var(--text-muted);
+.hero-description {
+    max-width: 600px;
+    margin: 0 auto;
+    color: #64748b;
+    font-size: 0.96rem;
+    line-height: 1.8;
 }
 
-/* Metrics Grid */
-.metrics-grid {
+/* Consultation section */
+.consultation-section {
+    margin: 0 0 34px;
+}
+
+.section-heading {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.section-heading h2 {
+    color: #163f3c;
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: -0.6px;
+    margin-bottom: 7px;
+}
+
+.section-heading p {
+    color: #64748b;
+    font-size: 0.92rem;
+}
+
+/* Four consultation cards */
+.consultation-options {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.75rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
 }
 
-.metric-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 1.25rem;
+.consultation-option {
+    position: relative;
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+    min-height: 170px;
+    padding: 22px 19px;
+    background: #ffffff;
+    border: 1px solid #e0eae8;
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(22, 63, 60, 0.035);
+    transition: border-color 0.2s ease,
+                background-color 0.2s ease,
+                box-shadow 0.2s ease,
+                transform 0.2s ease;
 }
 
-.metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+.consultation-option:hover {
+    border-color: #8bcac2;
+    box-shadow: 0 8px 22px rgba(19, 124, 117, 0.09);
+    transform: translateY(-3px);
 }
 
-.metric-icon {
-    font-size: 1.75rem;
-    width: 48px;
-    height: 48px;
+/* Hide the native radio but keep it accessible */
+.consultation-option input[type="radio"] {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 18px;
+    height: 18px;
+    accent-color: #137c75;
+    cursor: pointer;
+}
+
+.consultation-option:has(input:checked) {
+    background: #f0faf8;
+    border: 2px solid #137c75;
+    padding: 21px 18px;
+    box-shadow: 0 5px 18px rgba(19, 124, 117, 0.10);
+}
+
+.consultation-option:focus-within {
+    outline: 3px solid rgba(19, 124, 117, 0.18);
+    outline-offset: 3px;
+}
+
+.consultation-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-md);
-    background-color: #f1f5f9;
-}
-
-.metric-icon.icon-blue { background-color: #dbeafe; }
-.metric-icon.icon-green { background-color: #dcfce7; }
-.metric-icon.icon-orange { background-color: #ffedd5; }
-.metric-icon.icon-red { background-color: #fee2e2; }
-.metric-icon.icon-purple { background-color: #ede9fe; }
-
-.metric-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.metric-label {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.metric-value {
-    font-size: 1.65rem;
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    background: #e8f5f3;
+    color: #137c75;
+    font-size: 1.45rem;
     font-weight: 700;
-    color: #0f172a;
-    line-height: 1.2;
 }
 
-.text-green { color: var(--success); }
-.text-blue { color: var(--primary); }
-.text-muted { color: var(--text-muted); }
+.consultation-name {
+    color: #163f3c;
+    font-size: 1rem;
+    font-weight: 700;
+}
 
-/* Layout Grid for Booking View */
+.consultation-description {
+    color: #647b78;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+/* Booking and information cards */
 .grid-container {
-    display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 1.75rem;
+    gap: 24px;
     align-items: start;
 }
 
-/* Cards */
 .card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    padding: 1.5rem;
+    border-color: #e5eceb;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(22, 63, 60, 0.045);
+    padding: 26px;
 }
 
 .card-header {
-    margin-bottom: 1.25rem;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 0.75rem;
-}
-
-.card-header-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    border-bottom-color: #eaf0ef;
+    padding-bottom: 16px;
+    margin-bottom: 21px;
 }
 
 .card-title {
+    color: #163f3c;
     font-size: 1.25rem;
-    font-weight: 600;
-    color: #0f172a;
-    letter-spacing: -0.01em;
 }
 
 .card-desc {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-top: 0.15rem;
+    line-height: 1.7;
 }
 
-/* Forms */
-.form-group {
-    margin-bottom: 1.15rem;
-}
-
-.form-row {
-    display: flex;
-    gap: 1rem;
-}
-
-.col-half {
-    flex: 1;
-}
-
+/* Form controls */
 .form-label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 0.4rem;
-}
-
-.required {
-    color: #dc2626;
+    color: #334e4b;
 }
 
 .form-control {
-    width: 100%;
-    padding: 0.65rem 0.85rem;
-    font-size: 0.95rem;
-    font-family: inherit;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    min-height: 44px;
+    border-color: #dce7e5;
+    border-radius: 9px;
     background-color: #ffffff;
-    color: var(--text-main);
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:hover {
+    border-color: #b4d5d0;
 }
 
 .form-control:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    border-color: #137c75;
+    box-shadow: 0 0 0 3px rgba(19, 124, 117, 0.12);
 }
 
-.hint-text {
-    font-size: 0.8rem;
-    color: var(--secondary);
-    margin-top: 0.35rem;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-.form-actions {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
+textarea.form-control {
+    resize: vertical;
+    min-height: 90px;
 }
 
 /* Buttons */
 .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.7rem 1.25rem;
-    font-size: 0.925rem;
-    font-weight: 600;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.15s ease-in-out;
-    text-decoration: none;
-    font-family: inherit;
+    min-height: 44px;
+    border-radius: 9px;
 }
 
 .btn-primary {
-    background-color: var(--primary);
-    color: #ffffff;
-    flex: 1;
+    background: linear-gradient(135deg, #16877e, #116b65);
+    box-shadow: 0 4px 10px rgba(19, 124, 117, 0.12);
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-hover);
-    box-shadow: var(--shadow-sm);
+    background: #0f625d;
+    transform: translateY(-1px);
 }
 
 .btn-secondary {
-    background-color: #f1f5f9;
-    color: #334155;
-    border-color: var(--border-color);
+    background: #f3f7f6;
+    color: #315b56;
+    border-color: #dce7e5;
 }
 
 .btn-secondary:hover {
-    background-color: #e2e8f0;
-    color: #0f172a;
+    background: #e6f1ef;
+    color: #164e4a;
 }
 
-.btn-outline {
-    background-color: transparent;
-    color: var(--text-muted);
-    border-color: var(--border-color);
-}
-
-.btn-outline:hover {
-    background-color: #f8fafc;
-    color: var(--text-main);
-}
-
-.btn-cancel-small {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-}
-
-.btn-cancel-small:hover {
-    background-color: #fca5a5;
-    color: #7f1d1d;
-}
-
-.link-btn {
-    font-size: 0.825rem;
-    font-weight: 600;
-    color: var(--primary);
-    text-decoration: none;
-}
-
-.link-btn:hover {
-    text-decoration: underline;
-}
-
-/* Spinner */
-.btn-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    border-radius: 50%;
-    border-top-color: #ffffff;
-    animation: spin 0.8s linear infinite;
-    margin-left: 0.5rem;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Feedback & Alerts */
-.feedback-area {
-    margin-top: 1.5rem;
-}
-
-.alert {
-    padding: 1rem 1.15rem;
-    border-radius: var(--radius-md);
-    margin-bottom: 1rem;
-    font-size: 0.92rem;
-    line-height: 1.4;
-    border: 1px solid transparent;
-}
-
-.alert-success {
-    background-color: var(--success-bg);
-    border-color: var(--success-border);
-    color: var(--success);
-}
-
-.alert-danger {
-    background-color: var(--danger-bg);
-    border-color: var(--danger-border);
-    color: var(--danger);
-}
-
-.alert-warning {
-    background-color: var(--warning-bg);
-    border-color: var(--warning-border);
-    color: var(--warning);
-}
-
-/* Alternative Slots Card */
-.alternatives-card {
-    background-color: #f0fdfa;
-    border: 1px solid #99f6e4;
-    border-radius: var(--radius-md);
-    padding: 1rem 1.15rem;
-    margin-top: 0.75rem;
-}
-
-.alternatives-header {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    color: #0f766e;
-    font-size: 0.95rem;
-    margin-bottom: 0.35rem;
-}
-
-.alternatives-sub {
-    font-size: 0.825rem;
-    color: #115e59;
-    margin-bottom: 0.75rem;
-}
-
-.slots-chips-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.slot-chip {
-    background-color: #ffffff;
-    color: #0f766e;
-    border: 1.5px solid #2dd4bf;
-    border-radius: 9999px;
-    padding: 0.4rem 0.85rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease-in-out;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-
-.slot-chip:hover {
-    background-color: #0d9488;
-    color: #ffffff;
-    border-color: #0d9488;
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Schedule Column Right */
-.schedule-column {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.appointments-feed {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
+/* Appointment list */
 .feed-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background-color: #fbfcfe;
-    transition: background-color 0.15s ease;
-}
-
-.feed-item:hover {
-    background-color: #f8fafc;
-}
-
-.feed-time {
-    display: flex;
-    flex-direction: column;
-    width: 85px;
-    border-right: 1px solid var(--border-color);
-    margin-right: 0.85rem;
+    border-color: #e4ecea;
+    border-radius: 10px;
+    padding: 12px;
 }
 
 .time-main {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--primary);
+    color: #137c75;
 }
 
-.time-end {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
-.feed-details {
-    flex: 1;
-}
-
-.feed-patient {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #0f172a;
-}
-
-.feed-doctor {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-top: 0.15rem;
-}
-
-.feed-action {
-    margin-left: 0.5rem;
-}
-
-/* Physician Shift List */
-.doctors-shift-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+.link-btn {
+    color: #137c75;
 }
 
 .shift-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.shift-row:last-child {
-    border-bottom: none;
-}
-
-.shift-name {
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: #1e293b;
-}
-
-.shift-specialty {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-}
-
-/* Badges */
-.badge {
-    display: inline-block;
-    padding: 0.2rem 0.55rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: 9999px;
-    letter-spacing: 0.02em;
+    gap: 12px;
 }
 
 .badge-info {
-    background-color: #e0f2fe;
-    color: #0369a1;
-    border: 1px solid #bae6fd;
-}
-
-.badge-light {
-    background-color: #f1f5f9;
-    color: #475569;
-    border: 1px solid #e2e8f0;
-}
-
-.badge-success {
-    background-color: #dcfce7;
-    color: #15803d;
-    border: 1px solid #bbf7d0;
-}
-
-.badge-danger {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-}
-
-.time-range-badge {
-    font-family: monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #1e40af;
-    background-color: #eff6ff;
-    padding: 0.2rem 0.5rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid #dbeafe;
-}
-
-/* Filter Controls */
-.filter-card {
-    margin-bottom: 1.5rem;
-}
-
-.filter-header {
-    margin-bottom: 0.85rem;
-}
-
-.filter-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #334155;
-}
-
-.filter-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    align-items: flex-end;
-}
-
-.filter-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.filter-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    margin-bottom: 0.35rem;
-}
-
-.filter-actions {
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-}
-
-.filter-actions .btn {
-    flex: 1;
-}
-
-/* Data Table */
-.table-card {
-    padding: 0;
-    overflow: hidden;
-}
-
-.table-card .card-header {
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 0;
-}
-
-.records-count {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.table-responsive {
-    overflow-x: auto;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    font-size: 0.875rem;
-}
-
-.table th {
-    background-color: #f8fafc;
-    color: #475569;
-    font-weight: 600;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.85rem 1.25rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.table td {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid #f1f5f9;
-    color: #1e293b;
-    vertical-align: middle;
-}
-
-.table tbody tr:hover {
-    background-color: #fbfcfe;
-}
-
-.row-cancelled {
-    background-color: #fafaf9;
-    opacity: 0.7;
-}
-
-.row-cancelled td {
-    color: #78716c;
-}
-
-.font-mono {
-    font-family: monospace;
-    font-size: 0.825rem;
-    color: var(--text-muted);
-}
-
-.patient-name-cell {
-    font-weight: 600;
-    color: #0f172a;
-}
-
-.patient-reason-sub {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 0.15rem;
-}
-
-.doctor-name-cell {
-    font-weight: 500;
-    color: #1e293b;
-}
-
-.doctor-spec-sub {
-    font-size: 0.75rem;
-    color: #0d9488;
-}
-
-/* Empty States */
-.empty-state {
-    text-align: center;
-    padding: 2.5rem 1.5rem;
-}
-
-.empty-icon {
-    font-size: 2.25rem;
-    margin-bottom: 0.5rem;
-}
-
-.empty-text {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #475569;
-}
-
-.empty-sub {
-    font-size: 0.825rem;
-    color: var(--text-muted);
-    margin-top: 0.2rem;
+    background: #e8f5f3;
+    color: #137c75;
+    border-color: #c6e5e1;
 }
 
 /* Footer */
 .footer {
-    background-color: #ffffff;
-    border-top: 1px solid var(--border-color);
-    padding: 1.5rem;
-    text-align: center;
-    margin-top: auto;
+    border-top-color: #e2ecea;
+    padding: 22px 16px;
 }
 
 .footer-container p {
-    font-size: 0.825rem;
-    color: var(--text-muted);
+    line-height: 1.8;
 }
 
-/* Utilities */
-.hidden {
-    display: none !important;
-}
+/* Tablet */
+@media (max-width: 1000px) {
+    .consultation-options {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 
-.text-center {
-    text-align: center;
-}
+    .consultation-option {
+        min-height: 150px;
+    }
 
-.py-8 {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-}
-
-.mt-2 {
-    margin-top: 0.5rem;
-}
-
-/* Responsive Breakpoints */
-@media (max-width: 900px) {
     .grid-container {
         grid-template-columns: 1fr;
     }
-    
-    .form-row {
-        flex-direction: column;
-        gap: 0;
-    }
-    
-    .metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
 }
 
+/* Mobile */
 @media (max-width: 600px) {
-    .metrics-grid {
-        grid-template-columns: 1fr;
+    .main-container {
+        padding: 24px 16px 32px;
     }
-    
-    .filter-grid {
-        grid-template-columns: 1fr;
+
+    .hero-section {
+        padding: 12px 4px 4px;
+        margin-bottom: 28px;
     }
-    
-    .nav-container {
+
+    .hero-title {
+        letter-spacing: -1.3px;
+    }
+
+    .consultation-options {
+        gap: 10px;
+    }
+
+    .consultation-option {
+        min-height: 155px;
+        padding: 16px 13px;
+        border-radius: 13px;
+    }
+
+    .consultation-option:has(input:checked) {
+        padding: 15px 12px;
+    }
+
+    .consultation-icon {
+        width: 39px;
+        height: 39px;
+        font-size: 1.25rem;
+    }
+
+    .consultation-name {
+        font-size: 0.91rem;
+    }
+
+    .consultation-description {
+        font-size: 0.76rem;
+    }
+
+    .card {
+        padding: 19px 16px;
+    }
+
+    .form-actions {
         flex-direction: column;
-        gap: 0.75rem;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+
+    .card-header-flex {
+        align-items: flex-start;
+        gap: 12px;
+        flex-wrap: wrap;
     }
 }
