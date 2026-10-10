@@ -254,6 +254,7 @@ def book_appointment(
     db_path=None,
     consultation_type="in_person",
     address="",
+    is_emergency=False,
 ):
     valid, error = validate_appointment_input(
         patient_name,
@@ -335,6 +336,7 @@ def book_appointment(
             consultation_type=consultation_type,
             price=price,
             address=address or "",
+            is_emergency=bool(is_emergency),
         )
     except Exception:
         return {
