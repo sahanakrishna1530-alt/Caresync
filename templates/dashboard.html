@@ -40,7 +40,7 @@
         }
 
         .table-responsive { overflow-x: auto; }
-        #appointments-table { min-width: 1250px; }
+        #appointments-table { min-width: 1320px; }
 
         .dashboard-note {
             margin: 0 0 18px;
@@ -76,11 +76,130 @@
             box-shadow: 0 0 0 2px rgba(8, 127, 140, 0.12);
         }
 
-        .metric-card-clickable .metric-content { pointer-events: none; }
-        .metric-card-clickable .metric-icon { pointer-events: none; }
+        .metric-card-clickable .metric-content,
+        .metric-card-clickable .metric-icon {
+            pointer-events: none;
+        }
+
+        .appointment-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
+            min-width: 155px;
+        }
+
+        .btn-reschedule-small,
+        .btn-cancel-small {
+            border: 0;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-reschedule-small {
+            background: #e5f4f4;
+            color: #087f8c;
+        }
+
+        .btn-reschedule-small:hover { background: #d0ebeb; }
+
+        .btn-cancel-small {
+            background: #fff0f0;
+            color: #b42318;
+        }
+
+        .btn-cancel-small:hover { background: #ffe0e0; }
+
+        .btn-reschedule-small:focus-visible,
+        .btn-cancel-small:focus-visible {
+            outline: 2px solid #087f8c;
+            outline-offset: 2px;
+        }
+
+        .reschedule-panel {
+            margin: 0 0 22px;
+            padding: 24px;
+            border: 1px solid #d8e9eb;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 5px 20px rgba(20, 50, 70, 0.05);
+        }
+
+        .reschedule-panel[hidden] { display: none; }
+
+        .reschedule-panel h2 {
+            margin: 0 0 8px;
+            font-size: 20px;
+        }
+
+        .reschedule-description {
+            margin: 0 0 20px;
+            color: #647780;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .reschedule-form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .reschedule-field label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .reschedule-field input {
+            width: 100%;
+            min-height: 43px;
+            box-sizing: border-box;
+        }
+
+        .reschedule-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .reschedule-feedback {
+            margin-top: 14px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .reschedule-feedback:empty { display: none; }
+
+        .reschedule-feedback.error { color: #b42318; }
+        .reschedule-feedback.success { color: #087443; }
+
+        .reschedule-feedback button {
+            margin: 5px 6px 0 0;
+            padding: 7px 10px;
+            border: 1px solid #b7dfe1;
+            border-radius: 6px;
+            background: #f0fbfb;
+            color: #087f8c;
+            cursor: pointer;
+        }
+
+        .reschedule-feedback button:focus-visible {
+            outline: 2px solid #087f8c;
+            outline-offset: 2px;
+        }
 
         @media (max-width: 768px) {
             .dashboard-header { gap: 16px; flex-wrap: wrap; }
+            .reschedule-form-grid { grid-template-columns: 1fr; }
+            .reschedule-panel { padding: 17px; }
         }
     </style>
 </head>
@@ -113,7 +232,7 @@
             <a href="/book" class="btn btn-primary">+ Book New Appointment</a>
         </div>
 
-        <!-- Clickable appointment summary cards -->
+        <!-- Clickable summary cards -->
         <div class="metrics-grid">
             <button type="button" class="metric-card metric-card-clickable active"
                     data-dashboard-filter="ALL" aria-pressed="true">
@@ -164,6 +283,56 @@
             <div id="dashboard-alert-msg" class="alert-message"></div>
         </div>
 
+        <!-- Rescheduling form: opened from an appointment's Reschedule button -->
+        <section id="reschedule-panel" class="reschedule-panel" hidden>
+            <h2>Reschedule Appointment <span id="reschedule-reference"></span></h2>
+            <p class="reschedule-description" id="reschedule-current-details">
+                Select a new date, start time, and duration. CareSync will check the doctor's availability before saving.
+            </p>
+
+            <form id="reschedule-form">
+                <input type="hidden" id="reschedule-appointment-id">
+
+                <div class="reschedule-form-grid">
+                    <div class="reschedule-field">
+                        <label for="reschedule-date">New appointment date</label>
+                        <input type="date" id="reschedule-date"
+                               class="form-control"
+                               min="{{ today }}" required>
+                    </div>
+
+                    <div class="reschedule-field">
+                        <label for="reschedule-time">New start time</label>
+                        <input type="time" id="reschedule-time"
+                               class="form-control" required>
+                    </div>
+
+                    <div class="reschedule-field">
+                        <label for="reschedule-duration">Duration (minutes)</label>
+                        <input type="number" id="reschedule-duration"
+                               class="form-control" min="10" max="240"
+                               step="5" value="30" required>
+                    </div>
+                </div>
+
+                <div class="reschedule-actions">
+                    <button type="submit" id="reschedule-submit"
+                            class="btn btn-primary">
+                        Save New Schedule
+                    </button>
+                    <button type="button" id="reschedule-close"
+                            class="btn btn-outline">
+                        Close
+                    </button>
+                </div>
+
+                <div id="reschedule-feedback"
+                     class="reschedule-feedback"
+                     role="status" aria-live="polite"></div>
+            </form>
+        </section>
+
+        <!-- Filters -->
         <section class="card filter-card">
             <div class="filter-header">
                 <h2 class="filter-title">Filter Appointments</h2>
@@ -205,6 +374,7 @@
             </div>
         </section>
 
+        <!-- Appointment table -->
         <section class="card table-card">
             <div class="card-header card-header-flex">
                 <div>
@@ -310,10 +480,23 @@
 
                             <td>
                                 {% if appt.status == 'SCHEDULED' %}
-                                    <button type="button" class="btn-cancel-small"
-                                            onclick="cancelAppointmentAction({{ appt.id }})">
-                                        Cancel
-                                    </button>
+                                    <div class="appointment-actions">
+                                        <button type="button"
+                                                class="btn-reschedule-small"
+                                                data-reschedule-id="{{ appt.id }}"
+                                                data-reschedule-date="{{ appt.appointment_date }}"
+                                                data-reschedule-time="{{ appt.start_time }}"
+                                                data-reschedule-duration="{{ appt.duration_minutes }}"
+                                                data-patient-name="{{ appt.patient_name }}">
+                                            Reschedule
+                                        </button>
+
+                                        <button type="button"
+                                                class="btn-cancel-small"
+                                                onclick="cancelAppointmentAction({{ appt.id }})">
+                                            Cancel
+                                        </button>
+                                    </div>
                                 {% else %}
                                     <span class="text-muted text-sm">&mdash;</span>
                                 {% endif %}
