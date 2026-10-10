@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,13 +40,40 @@
         }
 
         .table-responsive { overflow-x: auto; }
-        #appointments-table { min-width: 1320px; }
+        #appointments-table { min-width: 1400px; }
 
         .dashboard-note {
             margin: 0 0 18px;
             color: #647780;
             font-size: 13px;
             line-height: 1.6;
+        }
+
+        /* Urgent-attention indicator */
+        .emergency-badge {
+            display: inline-block;
+            padding: 6px 9px;
+            border-radius: 7px;
+            background: #fff0f0;
+            color: #b42318;
+            border: 1px solid #f2c6c6;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .normal-attention {
+            display: inline-block;
+            color: #647780;
+            font-size: 12px;
+        }
+
+        .emergency-row {
+            background-color: #fffafa;
+        }
+
+        .emergency-row td:first-child {
+            border-left: 3px solid #b42318;
         }
 
         .metric-card-clickable {
@@ -201,6 +228,13 @@
             .reschedule-form-grid { grid-template-columns: 1fr; }
             .reschedule-panel { padding: 17px; }
         }
+
+        @media (max-width: 600px) {
+            .emergency-badge {
+                white-space: normal;
+                line-height: 1.4;
+            }
+        }
     </style>
 </head>
 
@@ -283,7 +317,7 @@
             <div id="dashboard-alert-msg" class="alert-message"></div>
         </div>
 
-        <!-- Rescheduling form: opened from an appointment's Reschedule button -->
+        <!-- Rescheduling form -->
         <section id="reschedule-panel" class="reschedule-panel" hidden>
             <h2>Reschedule Appointment <span id="reschedule-reference"></span></h2>
             <p class="reschedule-description" id="reschedule-current-details">
@@ -297,8 +331,7 @@
                     <div class="reschedule-field">
                         <label for="reschedule-date">New appointment date</label>
                         <input type="date" id="reschedule-date"
-                               class="form-control"
-                               min="{{ today }}" required>
+                               class="form-control" min="{{ today }}" required>
                     </div>
 
                     <div class="reschedule-field">
@@ -317,13 +350,9 @@
 
                 <div class="reschedule-actions">
                     <button type="submit" id="reschedule-submit"
-                            class="btn btn-primary">
-                        Save New Schedule
-                    </button>
+                            class="btn btn-primary">Save New Schedule</button>
                     <button type="button" id="reschedule-close"
-                            class="btn btn-outline">
-                        Close
-                    </button>
+                            class="btn btn-outline">Close</button>
                 </div>
 
                 <div id="reschedule-feedback"
@@ -364,12 +393,10 @@
                 </div>
 
                 <div class="filter-item filter-actions">
-                    <button type="button" id="apply-filters-btn" class="btn btn-secondary">
-                        Apply Filters
-                    </button>
-                    <button type="button" id="reset-filters-btn" class="btn btn-outline">
-                        Reset
-                    </button>
+                    <button type="button" id="apply-filters-btn"
+                            class="btn btn-secondary">Apply Filters</button>
+                    <button type="button" id="reset-filters-btn"
+                            class="btn btn-outline">Reset</button>
                 </div>
             </div>
         </section>
@@ -379,7 +406,7 @@
             <div class="card-header card-header-flex">
                 <div>
                     <h2 class="card-title">Appointment Records</h2>
-                    <p class="card-desc">Patient, consultation, scheduling, and payment details</p>
+                    <p class="card-desc">Patient, attention, consultation, scheduling, and payment details</p>
                 </div>
                 <div class="records-count">
                     Showing <span id="records-count-num">{{ appointments|length }}</span> record(s)
@@ -388,6 +415,7 @@
 
             <p class="dashboard-note">
                 Fees are displayed in Indian rupees. Older records without consultation details will show as unavailable.
+                Urgent-attention flags notify staff and do not replace clinical assessment.
             </p>
 
             <div class="table-responsive">
@@ -396,6 +424,7 @@
                         <tr>
                             <th>Ref #</th>
                             <th>Patient</th>
+                            <th>Attention</th>
                             <th>Physician</th>
                             <th>Date</th>
                             <th>Time Window</th>
@@ -413,13 +442,21 @@
                     {% if appointments %}
                         {% for appt in appointments %}
                         <tr id="row-{{ appt.id }}"
-                            class="{{ 'row-cancelled' if appt.status == 'CANCELLED' else '' }}">
+                            class="{{ 'row-cancelled' if appt.status == 'CANCELLED' else '' }} {{ 'emergency-row' if appt.is_emergency else '' }}">
                             <td class="font-mono">#{{ "%04d"|format(appt.id) }}</td>
 
                             <td>
                                 <div class="patient-name-cell">{{ appt.patient_name }}</div>
                                 {% if appt.reason %}
                                 <div class="patient-reason-sub">{{ appt.reason }}</div>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if appt.is_emergency %}
+                                    <span class="emergency-badge">Urgent Attention</span>
+                                {% else %}
+                                    <span class="normal-attention">Standard</span>
                                 {% endif %}
                             </td>
 
@@ -505,7 +542,7 @@
                         {% endfor %}
                     {% else %}
                         <tr id="no-records-row">
-                            <td colspan="12" class="text-center py-8">
+                            <td colspan="13" class="text-center py-8">
                                 <div class="empty-state">
                                     <div class="empty-icon">📂</div>
                                     <p class="empty-text">No appointment records found.</p>
@@ -529,3 +566,4 @@
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
+```
