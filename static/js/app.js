@@ -1,4 +1,5 @@
 
+```javascript
 "use strict";
 
 /* =========================================================
@@ -58,7 +59,6 @@ function showDashboardAlert(message, type = "success") {
         return;
     }
 
-    // Accept either "error" or "alert-error".
     const normalizedType = String(type).replace(/^alert-/, "");
 
     box.className = `alert alert-${normalizedType}`;
@@ -89,7 +89,6 @@ function clearRescheduleFeedback() {
 function initDashboard() {
     const tableBody = document.getElementById("appointments-tbody");
 
-    // Dashboard features are only initialized on the dashboard page.
     if (!tableBody) return;
 
     document.querySelectorAll("[data-dashboard-filter]").forEach(card => {
@@ -102,7 +101,6 @@ function initDashboard() {
             const date = document.getElementById("filter-date");
             const status = document.getElementById("filter-status");
 
-            // Summary cards start a fresh view.
             if (doctor) doctor.value = "";
             if (date) date.value = "";
             if (status) status.value = "ALL";
@@ -113,6 +111,7 @@ function initDashboard() {
                 status.value = "CANCELLED";
             } else if (filter === "TODAY" && date) {
                 date.value = getLocalDate();
+
                 if (status) status.value = "SCHEDULED";
             }
 
@@ -176,7 +175,9 @@ async function loadAppointments() {
 
     tbody.innerHTML = `
         <tr>
-            <td colspan="12" class="text-center">Loading appointments...</td>
+            <td colspan="13" class="text-center">
+                Loading appointments...
+            </td>
         </tr>`;
 
     try {
@@ -188,7 +189,9 @@ async function loadAppointments() {
             : (data.appointments || data.records || []);
 
         if (!Array.isArray(appointments)) {
-            throw new Error("Unexpected appointment data returned by the server.");
+            throw new Error(
+                "Unexpected appointment data returned by the server."
+            );
         }
 
         if (activeDashboardFilter === "TODAY") {
@@ -205,7 +208,7 @@ async function loadAppointments() {
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="12" class="text-center">
+                <td colspan="13" class="text-center">
                     Unable to load appointments. Please try again.
                 </td>
             </tr>`;
@@ -214,7 +217,21 @@ async function loadAppointments() {
     }
 }
 
-/* -------------------- Render the 12-column table -------------------- */
+/* -------------------- Emergency flag helper -------------------- */
+
+function isUrgentAppointment(value) {
+    if (value === true || value === 1) return true;
+
+    if (typeof value === "string") {
+        return ["1", "true", "yes", "on"].includes(
+            value.trim().toLowerCase()
+        );
+    }
+
+    return false;
+}
+
+/* -------------------- Render the 13-column table -------------------- */
 
 function renderAppointmentsTable(appointments) {
     const tbody = document.getElementById("appointments-tbody");
@@ -227,7 +244,7 @@ function renderAppointmentsTable(appointments) {
     if (appointments.length === 0) {
         tbody.innerHTML = `
             <tr id="no-records-row">
-                <td colspan="12" class="text-center py-8">
+                <td colspan="13" class="text-center py-8">
                     <div class="empty-state">
                         <div class="empty-icon">No records</div>
                         <p class="empty-text">
@@ -256,6 +273,7 @@ function renderAppointmentsTable(appointments) {
 
         const status = String(appointment.status || "").toUpperCase();
         const isScheduled = status === "SCHEDULED";
+        const isEmergency = isUrgentAppointment(appointment.is_emergency);
         const isHomeVisit = appointment.consultation_type === "home";
         const consultation = consultationNames[appointment.consultation_type];
 
@@ -270,8 +288,14 @@ function renderAppointmentsTable(appointments) {
             ? escapeHtml(appointment.address || "Not provided")
             : "—";
 
-        const dateValue = String(appointment.appointment_date || "").slice(0, 10);
-        const startTime = String(appointment.start_time || "").slice(0, 5);
+        const dateValue = String(
+            appointment.appointment_date || ""
+        ).slice(0, 10);
+
+        const startTime = String(
+            appointment.start_time || ""
+        ).slice(0, 5);
+
         const duration = Number(appointment.duration_minutes) || 30;
 
         const actionButtons = isScheduled
@@ -286,6 +310,7 @@ function renderAppointmentsTable(appointments) {
                             data-patient-name="${escapeHtml(appointment.patient_name || "")}">
                         Reschedule
                     </button>
+
                     <button type="button"
                             class="btn-cancel-small"
                             data-cancel-id="${id}">
@@ -295,22 +320,34 @@ function renderAppointmentsTable(appointments) {
             : '<span class="text-muted text-sm">—</span>';
 
         return `
-            <tr id="row-${id}" class="${isScheduled ? "" : "row-cancelled"}">
-                <td class="font-mono">#${String(id).padStart(4, "0")}</td>
+            <tr id="row-${id}"
+                class="${isScheduled ? "" : "row-cancelled"} ${isEmergency ? "emergency-row" : ""}">
+
+                <td class="font-mono">
+                    #${String(id).padStart(4, "0")}
+                </td>
 
                 <td>
                     <div class="patient-name-cell">
                         ${escapeHtml(appointment.patient_name || "—")}
                     </div>
+
                     ${appointment.reason
                         ? `<div class="patient-reason-sub">${escapeHtml(appointment.reason)}</div>`
                         : ""}
                 </td>
 
                 <td>
+                    ${isEmergency
+                        ? '<span class="emergency-badge">Urgent Attention</span>'
+                        : '<span class="normal-attention">Standard</span>'}
+                </td>
+
+                <td>
                     <div class="doctor-name-cell">
                         ${escapeHtml(appointment.doctor_name || "—")}
                     </div>
+
                     <div class="doctor-spec-sub">
                         ${escapeHtml(appointment.doctor_specialty || "")}
                     </div>
@@ -322,11 +359,15 @@ function renderAppointmentsTable(appointments) {
                     <span class="time-range-badge">
                         ${escapeHtml(startTime || "—")}
                         &ndash;
-                        ${escapeHtml(String(appointment.end_time || "").slice(0, 5) || "—")}
+                        ${escapeHtml(
+                            String(appointment.end_time || "").slice(0, 5) || "—"
+                        )}
                     </span>
                 </td>
 
-                <td>${escapeHtml(appointment.duration_minutes ?? "—")} min</td>
+                <td>
+                    ${escapeHtml(appointment.duration_minutes ?? "—")} min
+                </td>
 
                 <td class="consultation-cell">
                     ${consultation
@@ -334,9 +375,13 @@ function renderAppointmentsTable(appointments) {
                         : "—"}
                 </td>
 
-                <td><div class="consultation-price">${price}</div></td>
+                <td>
+                    <div class="consultation-price">${price}</div>
+                </td>
 
-                <td><div class="visit-address">${address}</div></td>
+                <td>
+                    <div class="visit-address">${address}</div>
+                </td>
 
                 <td>
                     <span class="badge badge-light">
@@ -354,7 +399,7 @@ function renderAppointmentsTable(appointments) {
             </tr>`;
     }).join("");
 
-    // Event delegation handles buttons after every table redraw.
+    // Attach actions after each table redraw.
     tbody.querySelectorAll("[data-cancel-id]").forEach(button => {
         button.addEventListener("click", () => {
             cancelAppointmentAction(button.dataset.cancelId);
@@ -414,7 +459,6 @@ function initRescheduling() {
     if (!form || !panel) return;
 
     form.addEventListener("submit", handleRescheduleSubmit);
-
     closeButton?.addEventListener("click", closeRescheduleForm);
 }
 
@@ -452,9 +496,7 @@ function openRescheduleForm(button) {
 
     const dateInput = document.getElementById("reschedule-date");
 
-    if (dateInput) {
-        dateInput.min = getLocalDate();
-    }
+    if (dateInput) dateInput.min = getLocalDate();
 
     clearRescheduleFeedback();
 
@@ -532,22 +574,18 @@ async function handleRescheduleSubmit(event) {
     clearRescheduleFeedback();
 
     try {
-        const response = await fetch(
-            `/api/appointments/${id}/reschedule`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    appointment_date: appointmentDate,
-                    start_time: startTime,
-                    duration_minutes: duration
-                })
-            }
-        );
+        const response = await fetch(`/api/appointments/${id}/reschedule`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                appointment_date: appointmentDate,
+                start_time: startTime,
+                duration_minutes: duration
+            })
+        });
 
-        // Read the body ourselves so conflict alternatives aren't lost.
         const data = await response.json();
 
         if (!response.ok || data.success === false) {
@@ -575,8 +613,6 @@ async function handleRescheduleSubmit(event) {
 
         await loadAppointments();
         await refreshDashboardMetrics();
-
-        // Close the form after the successful refresh.
         closeRescheduleForm();
     } catch (error) {
         console.error("Rescheduling failed:", error);
@@ -623,13 +659,8 @@ function displayRescheduleAlternatives(alternatives) {
             const dateInput = document.getElementById("reschedule-date");
             const timeInput = document.getElementById("reschedule-time");
 
-            if (dateInput && slotDate) {
-                dateInput.value = slotDate;
-            }
-
-            if (timeInput) {
-                timeInput.value = slot.start_time;
-            }
+            if (dateInput && slotDate) dateInput.value = slotDate;
+            if (timeInput) timeInput.value = slot.start_time;
 
             showRescheduleFeedback(
                 `Selected ${slotDate} at ${slot.start_time}. Select Save New Schedule to confirm.`,
@@ -669,7 +700,7 @@ async function refreshDashboardMetrics() {
     }
 }
 
-/* -------------------- Legacy booking form support -------------------- */
+/* -------------------- Booking form support -------------------- */
 
 function initBookingForm() {
     const form = document.getElementById("appointment-form");
@@ -729,6 +760,9 @@ async function handleBookingSubmit(event) {
     const reason =
         document.getElementById("visit-reason")?.value.trim() || "";
 
+    const emergencyInput = document.getElementById("is-emergency");
+    const isEmergency = emergencyInput ? emergencyInput.checked : false;
+
     if (!patientName || !doctorId || !appointmentDate || !startTime || !duration) {
         showFeedback("Please complete all required booking fields.", "danger");
         return;
@@ -739,7 +773,9 @@ async function handleBookingSubmit(event) {
     try {
         const response = await fetch("/api/appointments", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({
                 patient_name: patientName,
                 doctor_id: Number(doctorId),
@@ -748,7 +784,8 @@ async function handleBookingSubmit(event) {
                 duration_minutes: Number(duration),
                 reason,
                 consultation_type: "in_person",
-                address: ""
+                address: "",
+                is_emergency: isEmergency
             })
         });
 
@@ -766,7 +803,10 @@ async function handleBookingSubmit(event) {
             addAppointmentToFeedIfToday(data.appointment);
         }
     } catch (error) {
-        showFeedback(error.message || "Unable to book appointment.", "danger");
+        showFeedback(
+            error.message || "Unable to book appointment.",
+            "danger"
+        );
     } finally {
         setLoadingState(false);
     }
@@ -817,7 +857,10 @@ async function handleCheckAvailability() {
             }
         }
     } catch (error) {
-        showFeedback(error.message || "Unable to check availability.", "danger");
+        showFeedback(
+            error.message || "Unable to check availability.",
+            "danger"
+        );
     }
 }
 
@@ -880,6 +923,7 @@ function showFeedback(message, type = "info") {
 
 function setLoadingState(isLoading) {
     const button = document.getElementById("book-btn");
+
     if (!button) return;
 
     button.disabled = isLoading;
@@ -936,3 +980,4 @@ function addAppointmentToFeedIfToday(appointment) {
     item.append(time, details);
     feed.prepend(item);
 }
+```
