@@ -16,6 +16,7 @@ from database import (
 )
 
 from scheduler import (
+    CONSULTATION_TYPES,
     book_appointment,
     cancel_appointment,
     reschedule_appointment,
@@ -35,6 +36,21 @@ with app.app_context():
     init_db()
 
 
+# -------------------- CONSULTATION SETTINGS --------------------
+
+CONSULTATION_NAMES = {
+    "video": "Video Visit",
+    "phone": "Phone Call",
+    "in_person": "In Person",
+    "home": "Home Visit",
+}
+
+CONSULTATION_PRICES = {
+    key: value["price"]
+    for key, value in CONSULTATION_TYPES.items()
+}
+
+
 # -------------------- HOME PAGE --------------------
 
 @app.route("/")
@@ -47,20 +63,12 @@ def index():
         status="SCHEDULED",
     )
 
-    
     return render_template(
-        "booking.html",
+        "index.html",
         doctors=doctors,
-        consultation_type=consultation_type,
-        consultation_name=consultation_names[consultation_type],
-        consultation_price=__import__("scheduler").CONSULTATION_TYPES[consultation_type]["price"],
-        consultation_prices={
-            key: value["price"]
-            for key, value in __import__("scheduler").CONSULTATION_TYPES.items()
-        },
-        today=date.today().isoformat(),
+        today=today_str,
+        recent_appointments=recent_appointments,
     )
-
 
 
 # -------------------- BOOKING PAGE --------------------
@@ -69,26 +77,21 @@ def index():
 def booking():
     doctors = get_all_doctors()
 
-    consultation_names = {
-        "video": "Video Visit",
-        "phone": "Phone Call",
-        "in_person": "In Person",
-        "home": "Home Visit",
-    }
-
     consultation_type = request.args.get(
         "type",
         "in_person",
     )
 
-    if consultation_type not in consultation_names:
+    if consultation_type not in CONSULTATION_NAMES:
         consultation_type = "in_person"
 
     return render_template(
         "booking.html",
         doctors=doctors,
         consultation_type=consultation_type,
-        consultation_name=consultation_names[consultation_type],
+        consultation_name=CONSULTATION_NAMES[consultation_type],
+        consultation_price=CONSULTATION_PRICES[consultation_type],
+        consultation_prices=CONSULTATION_PRICES,
         today=date.today().isoformat(),
     )
 
@@ -184,7 +187,6 @@ def api_book_appointment():
     duration_minutes = data.get("duration_minutes", 30)
     reason = data.get("reason", "").strip()
 
-    # Keep consultation details when supplied by the frontend.
     consultation_type = data.get(
         "consultation_type",
         "in_person",
@@ -242,17 +244,6 @@ def api_cancel_appointment(appointment_id):
     methods=["POST"],
 )
 def api_reschedule_appointment(appointment_id):
-    """
-    Reschedule an existing appointment.
-
-    Expected JSON:
-    {
-        "appointment_date": "YYYY-MM-DD",
-        "start_time": "HH:MM",
-        "duration_minutes": 30
-    }
-    """
-
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
