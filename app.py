@@ -32,7 +32,28 @@ with app.app_context():
 # ---------------------------------------------------------------------------
 # HTML Page Routes
 # ---------------------------------------------------------------------------
+@app.route("/book")
+def booking():
+    """Render the separate appointment booking page."""
+    doctors = get_all_doctors()
+    consultation_type = request.args.get("type", "in_person")
 
+    valid_types = {
+        "video": "Video Visit",
+        "phone": "Phone Call",
+        "in_person": "In Person",
+        "home": "Home Visit",
+    }
+
+    if consultation_type not in valid_types:
+        consultation_type = "in_person"
+
+    return render_template(
+        "booking.html",
+        doctors=doctors,
+        consultation_type=consultation_type,
+        consultation_name=valid_types[consultation_type],
+    )
 @app.route("/")
 def index():
     """Render the appointment booking portal and today's schedule glance."""
