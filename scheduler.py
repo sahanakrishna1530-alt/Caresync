@@ -67,6 +67,8 @@ def validate_appointment_input(patient_name: str, doctor_id: int, appointment_da
         parsed_date = datetime.strptime(appointment_date, "%Y-%m-%d").date()
     except (ValueError, TypeError):
         return False, "Invalid date format. Expected YYYY-MM-DD."
+    if parsed_date < date.today():
+        return False, "Appointment date cannot be in the past."
 
     # Validate time format (HH:MM)
     try:
