@@ -75,7 +75,7 @@ def validate_appointment_input(
             str(appointment_date), "%Y-%m-%d"
         ).date()
     except (TypeError, ValueError):
-        return False, "Please enter a valid appointment date."
+        return False, "Please enter a valid appointment date format."
 
     if requested_date < date.today():
         return False, "Appointment date cannot be in the past."
@@ -83,7 +83,7 @@ def validate_appointment_input(
     try:
         datetime.strptime(str(start_time), "%H:%M")
     except (TypeError, ValueError):
-        return False, "Please enter a valid start time in HH:MM format."
+        return False, "Please enter a valid time format(HH:MM.)"
 
     try:
         duration = int(duration_minutes)
@@ -137,7 +137,7 @@ def check_doctor_availability(
     if start_minutes < working_start or end_minutes > working_end:
         return (
             False,
-            f"Please choose a time within the doctor's working hours "
+            f"This appointment is outside the doctor's working hours (10:00–18:00)."
             f"({doctor['working_hours_start']}–{doctor['working_hours_end']}).",
             None,
         )
@@ -164,7 +164,7 @@ def check_doctor_availability(
         ):
             return (
                 False,
-                "This time slot conflicts with another scheduled appointment.",
+                "This appointment is already booked for the selected time slot.",
                 appointment,
             )
 
