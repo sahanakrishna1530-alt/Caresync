@@ -4,18 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Appointment | CareSync</title>
+    <meta name="theme-color" content="#102e38">
+    <title>Book an Appointment | CareSync</title>
+
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/style.css') }}">
 
     <style>
         :root {
-            --teal: #087f8c;
-            --teal-dark: #066570;
-            --text: #20323a;
-            --muted: #647780;
-            --border: #dce7e9;
-            --surface: #f5fbfb;
+            --primary: #087f8c;
+            --primary-dark: #066570;
+            --navy: #102e38;
+            --text: #243b44;
+            --muted: #71828a;
+            --border: #e2eaed;
+            --background: #f4f8fa;
+            --white: #ffffff;
+            --danger: #b42318;
         }
 
         * {
@@ -24,146 +29,335 @@
 
         body {
             margin: 0;
-            background: #f8fbfc;
+            background: var(--background);
             color: var(--text);
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: Inter, -apple-system, BlinkMacSystemFont,
+                         "Segoe UI", Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
         }
 
-        .booking-page {
-            width: min(900px, calc(100% - 32px));
-            margin: 36px auto;
+        button, input, select, textarea {
+            font: inherit;
         }
 
-        .booking-header {
-            margin-bottom: 26px;
+        [hidden] {
+            display: none !important;
+        }
+
+        .topbar {
+            background: var(--navy);
+            color: white;
+        }
+
+        .topbar-inner {
+            width: min(1120px, calc(100% - 40px));
+            min-height: 76px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
         }
 
         .brand {
-            color: var(--teal);
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            color: white;
             text-decoration: none;
         }
 
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: var(--teal);
+        .brand-mark {
+            width: 43px;
+            height: 43px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            background: var(--primary);
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .brand-name {
+            display: block;
+            font-size: 21px;
+            font-weight: 800;
+            letter-spacing: -.7px;
+            line-height: 1.2;
+        }
+
+        .brand-caption {
+            display: block;
+            margin-top: 4px;
+            color: #c0d3d8;
+            font-size: 11px;
+        }
+
+        .nav-link {
+            color: #e0ecef;
             text-decoration: none;
             font-weight: 600;
         }
 
-        .booking-header h1 {
-            margin: 20px 0 8px;
-            font-size: clamp(28px, 5vw, 38px);
-            letter-spacing: -1px;
+        .page-shell {
+            width: min(1080px, calc(100% - 40px));
+            margin: auto;
+            padding: 34px 0 48px;
         }
 
-        .booking-header p {
+        .breadcrumb {
+            display: flex;
+            gap: 9px;
+            margin-bottom: 25px;
             color: var(--muted);
-            line-height: 1.6;
+            font-size: 12px;
         }
 
-        .booking-card {
-            padding: clamp(20px, 4vw, 36px);
+        .breadcrumb a {
+            color: var(--primary-dark);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .page-intro {
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: var(--primary-dark);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .page-title {
+            margin: 0;
+            color: var(--navy);
+            font-size: clamp(30px, 4vw, 42px);
+            font-weight: 800;
+            letter-spacing: -1.4px;
+            line-height: 1.2;
+        }
+
+        .page-description {
+            max-width: 620px;
+            margin: 12px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .booking-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 275px;
+            align-items: start;
+            gap: 23px;
+        }
+
+        .booking-card,
+        .sidebar-card {
+            min-width: 0;
             background: white;
             border: 1px solid var(--border);
-            border-radius: 18px;
-            box-shadow: 0 12px 36px rgba(28, 72, 80, 0.06);
+            border-radius: 16px;
+            box-shadow: 0 14px 40px rgba(16, 46, 56, .06);
+            overflow: hidden;
         }
 
-        .selected-consultation {
-            padding: 20px;
-            margin-bottom: 28px;
-            border: 1px solid #c9e7e8;
-            border-radius: 14px;
-            background: var(--surface);
+        .card-heading {
+            padding: 24px 27px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 13px;
         }
 
-        .selected-consultation .eyebrow {
-            margin: 0 0 8px;
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+        .heading-icon {
+            width: 45px;
+            height: 45px;
+            flex: 0 0 45px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            background: #eaf7f7;
+            color: var(--primary-dark);
+            font-size: 23px;
         }
 
-        .selected-consultation h2 {
+        .card-heading h2 {
             margin: 0;
-            font-size: 24px;
-        }
-
-        #consultation-price {
-            margin: 10px 0 0;
-            color: var(--teal-dark);
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .section-title {
-            margin: 0 0 20px;
+            color: var(--navy);
             font-size: 19px;
+            font-weight: 750;
         }
 
-        .booking-form {
+        .card-heading p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .form-content {
+            padding: 26px 27px 30px;
+        }
+
+        .consultation-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 29px;
+            padding: 18px;
+            border: 1px solid #cde7e8;
+            border-radius: 13px;
+            background: linear-gradient(120deg, #effafa, #f9fcfc);
+        }
+
+        .summary-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .summary-icon {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #d7ebeb;
+            border-radius: 12px;
+            background: white;
+            font-size: 22px;
+        }
+
+        .summary-caption {
+            display: block;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .summary-name {
+            margin: 3px 0 0;
+            color: var(--navy);
+            font-size: 16px;
+            font-weight: 750;
+            overflow-wrap: anywhere;
+        }
+
+        .summary-price {
+            margin: 4px 0 0;
+            color: var(--primary-dark);
+            font-weight: 750;
+        }
+
+        .fee-label {
+            flex: 0 0 auto;
+            padding: 5px 8px;
+            border: 1px solid #cde7e8;
+            border-radius: 7px;
+            background: white;
+            color: var(--primary-dark);
+            font-size: 10px;
+            font-weight: 750;
+        }
+
+        .form-section {
+            margin-top: 29px;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 18px;
+            color: var(--navy);
+            font-size: 15px;
+            font-weight: 750;
+        }
+
+        .section-number {
+            width: 27px;
+            height: 27px;
+            flex: 0 0 27px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: #eaf7f7;
+            color: var(--primary-dark);
+            font-size: 12px;
+        }
+
+        .form-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px;
+            gap: 19px 16px;
         }
 
         .form-field {
             display: flex;
-            min-width: 0;
             flex-direction: column;
-            gap: 8px;
+            min-width: 0;
+            gap: 7px;
         }
 
-        .form-field.full-width,
-        .booking-actions,
-        #booking-message {
+        .form-field.full-width {
             grid-column: 1 / -1;
         }
 
         .form-field label {
-            font-size: 14px;
-            font-weight: 700;
+            color: #304750;
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .required {
+            color: var(--danger);
         }
 
         .form-field input,
         .form-field select,
         .form-field textarea {
             width: 100%;
+            min-width: 0;
             min-height: 46px;
-            padding: 12px 13px;
-            border: 1px solid #d5dfe3;
+            padding: 11px 12px;
+            border: 1px solid #d8e2e6;
             border-radius: 9px;
-            background: #fff;
+            outline: none;
+            background: white;
             color: var(--text);
-            font: inherit;
+            transition: border-color .2s, box-shadow .2s;
         }
 
         .form-field textarea {
+            min-height: 100px;
             resize: vertical;
         }
 
         .form-field input:focus,
         .form-field select:focus,
         .form-field textarea:focus {
-            outline: 2px solid rgba(8, 127, 140, 0.18);
-            border-color: var(--teal);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(8, 127, 140, .11);
         }
 
         .field-hint {
             color: var(--muted);
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 11px;
+            line-height: 1.6;
         }
 
         .emergency-field {
             padding: 16px;
-            border: 1px solid #f0d5d5;
+            border: 1px solid #efd8d6;
             border-radius: 12px;
             background: #fffafa;
         }
@@ -172,22 +366,22 @@
             display: flex;
             align-items: flex-start;
             gap: 10px;
-            line-height: 1.5;
             cursor: pointer;
+            line-height: 1.5;
         }
 
-        .emergency-label input[type="checkbox"] {
+        .emergency-label input {
             width: 18px;
             height: 18px;
             min-height: 18px;
             flex: 0 0 18px;
             margin: 2px 0 0;
-            accent-color: #b42318;
+            accent-color: var(--danger);
         }
 
         .emergency-title {
             color: #912018;
-            font-weight: 700;
+            font-weight: 750;
         }
 
         .emergency-field .field-hint {
@@ -195,76 +389,211 @@
             margin: 10px 0 0 28px;
         }
 
-        [hidden] {
-            display: none !important;
-        }
-
         .booking-actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 6px;
+            gap: 11px;
+            margin-top: 28px;
         }
 
         .booking-actions button {
-            min-height: 46px;
-            padding: 12px 20px;
-            border: 0;
+            min-height: 47px;
+            padding: 12px 18px;
+            border: 1px solid transparent;
             border-radius: 9px;
             cursor: pointer;
-            font: inherit;
-            font-weight: 700;
+            font-weight: 750;
+            transition: background .2s, transform .2s;
+        }
+
+        .booking-actions button:hover:not(:disabled) {
+            transform: translateY(-1px);
         }
 
         .primary-button {
-            background: var(--teal);
+            flex: 1 1 190px;
+            background: var(--primary);
             color: white;
         }
 
-        .primary-button:hover {
-            background: var(--teal-dark);
+        .primary-button:hover:not(:disabled) {
+            background: var(--primary-dark);
         }
 
         .secondary-button {
-            background: #edf3f5;
+            background: white;
+            border-color: var(--border) !important;
             color: var(--text);
+        }
+
+        .secondary-button:hover:not(:disabled) {
+            background: #f2f8f9;
         }
 
         .booking-actions button:disabled {
             cursor: wait;
-            opacity: 0.65;
+            opacity: .65;
         }
 
         #booking-message {
-            min-height: 24px;
-            margin: 0;
-            color: var(--teal-dark);
-            line-height: 1.6;
+            margin: 16px 0 0;
+            color: var(--primary-dark);
+            font-size: 13px;
             overflow-wrap: anywhere;
             white-space: pre-line;
         }
 
-        .footer-note {
-            margin-top: 22px;
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.6;
-            text-align: center;
+        #booking-message.message-error {
+            color: var(--danger);
         }
 
-        @media (max-width: 600px) {
-            .booking-page {
-                margin: 20px auto;
+        #booking-message.message-success {
+            color: #157347;
+        }
+
+        /* Sidebar */
+
+        .sidebar {
+            display: grid;
+            gap: 18px;
+        }
+
+        .sidebar-card {
+            padding: 22px;
+        }
+
+        .sidebar-title {
+            margin: 0 0 17px;
+            color: var(--navy);
+            font-size: 15px;
+            font-weight: 750;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 17px;
+        }
+
+        .step-item:first-of-type {
+            margin-top: 0;
+        }
+
+        .step-icon {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            background: #eaf7f7;
+            color: var(--primary-dark);
+            font-size: 16px;
+            font-weight: 750;
+        }
+
+        .step-item h3 {
+            margin: 0;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .step-item p {
+            margin: 3px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .privacy-card {
+            background: var(--navy);
+            color: white;
+            border-color: var(--navy);
+        }
+
+        .privacy-card .sidebar-title {
+            color: white;
+        }
+
+        .privacy-card p {
+            margin: 0;
+            color: #c6d8dd;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .privacy-icon {
+            margin-bottom: 11px;
+            font-size: 25px;
+        }
+
+        .footer-note {
+            margin-top: 27px;
+            color: var(--muted);
+            font-size: 11px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 850px) {
+            .booking-layout {
+                grid-template-columns: minmax(0, 1fr);
             }
 
-            .booking-form {
-                grid-template-columns: 1fr;
+            .sidebar {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+            .topbar-inner {
+                width: calc(100% - 30px);
+                min-height: 68px;
             }
 
-            .form-field.full-width,
-            .booking-actions,
-            #booking-message {
+            .brand-name {
+                font-size: 19px;
+            }
+
+            .page-shell {
+                width: calc(100% - 26px);
+                padding-top: 24px;
+            }
+
+            .page-title {
+                font-size: 31px;
+            }
+
+            .page-description {
+                font-size: 13px;
+            }
+
+            .card-heading {
+                padding: 20px;
+            }
+
+            .form-content {
+                padding: 20px;
+            }
+
+            .form-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 16px;
+            }
+
+            .form-field.full-width {
                 grid-column: 1;
+            }
+
+            .consultation-summary {
+                align-items: flex-start;
+                padding: 14px;
+            }
+
+            .fee-label {
+                display: none;
             }
 
             .booking-actions {
@@ -274,183 +603,313 @@
             .booking-actions button {
                 width: 100%;
             }
+
+            .sidebar {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
     </style>
 </head>
 
 <body>
-    <main class="booking-page">
-        <header class="booking-header">
-            <a class="brand" href="/">CareSync</a>
-            <br>
-            <a class="back-link" href="/">&#8592; Back to home</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="CareSync home">
+                <span class="brand-mark" aria-hidden="true">+</span>
+                <span>
+                    <span class="brand-name">CareSync</span>
+                    <span class="brand-caption">Healthcare, coordinated.</span>
+                </span>
+            </a>
 
-            <h1>Book your appointment</h1>
-            <p>Right Patient. Right Doctor. Right Time.</p>
-        </header>
+            <a class="nav-link" href="/">← Home</a>
+        </div>
+    </header>
 
-        <section class="booking-card">
-            <section class="selected-consultation" aria-live="polite">
-                <p class="eyebrow">Your selected consultation</p>
-                <h2 id="consultation-name">{{ consultation_name }}</h2>
-                <p id="consultation-price">
-                    Consultation fee: &#8377;{{ consultation_price }}
-                </p>
-            </section>
+    <main class="page-shell">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="/">Home</a>
+            <span>/</span>
+            <span>Book appointment</span>
+        </nav>
 
-            <h3 class="section-title">Appointment details</h3>
-
-            <form id="booking-form" class="booking-form">
-                <div class="form-field full-width">
-                    <label for="consultation-type">Consultation type</label>
-
-                    <select id="consultation-type"
-                            name="consultation_type"
-                            required>
-                        <option value="video"
-                            {% if consultation_type == 'video' %}selected{% endif %}>
-                            Video Visit
-                        </option>
-                        <option value="phone"
-                            {% if consultation_type == 'phone' %}selected{% endif %}>
-                            Phone Call
-                        </option>
-                        <option value="in_person"
-                            {% if consultation_type == 'in_person' %}selected{% endif %}>
-                            In Person
-                        </option>
-                        <option value="home"
-                            {% if consultation_type == 'home' %}selected{% endif %}>
-                            Home Visit
-                        </option>
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="patient-name">Patient name</label>
-                    <input id="patient-name"
-                           name="patient_name"
-                           type="text"
-                           minlength="2"
-                           maxlength="100"
-                           autocomplete="name"
-                           required>
-                </div>
-
-                <div class="form-field">
-                    <label for="doctor-id">Choose doctor</label>
-                    <select id="doctor-id" name="doctor_id" required>
-                        <option value="">Select a doctor</option>
-                        {% for doctor in doctors %}
-                        <option value="{{ doctor.id }}">
-                            {{ doctor.name }} — {{ doctor.specialty }}
-                            ({{ doctor.room_number }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="appointment-date">Appointment date</label>
-                    <input id="appointment-date"
-                           name="appointment_date"
-                           type="date"
-                           min="{{ today }}"
-                           required>
-                </div>
-
-                <div class="form-field">
-                    <label for="start-time">Start time</label>
-                    <input id="start-time"
-                           name="start_time"
-                           type="time"
-                           required>
-                    <span class="field-hint">
-                        Doctor availability and working hours apply.
-                    </span>
-                </div>
-
-                <div class="form-field">
-                    <label for="duration">Duration</label>
-                    <select id="duration" name="duration_minutes" required>
-                        <option value="15">15 minutes</option>
-                        <option value="30" selected>30 minutes</option>
-                        <option value="45">45 minutes</option>
-                        <option value="60">60 minutes</option>
-                    </select>
-                </div>
-
-                <div class="form-field" id="address-field" hidden>
-                    <label for="home-address">Home visit address</label>
-                    <input id="home-address"
-                           name="address"
-                           type="text"
-                           maxlength="250"
-                           autocomplete="street-address"
-                           placeholder="Enter the complete visit address">
-                    <span class="field-hint">
-                        Required only for a Home Visit.
-                    </span>
-                </div>
-
-                <div class="form-field full-width">
-                    <label for="reason">Reason for visit</label>
-                    <textarea id="reason"
-                              name="reason"
-                              rows="3"
-                              maxlength="1000"
-                              placeholder="Briefly describe the reason for your appointment"></textarea>
-                </div>
-
-                <!-- Emergency-awareness flag -->
-                <div class="form-field full-width emergency-field">
-                    <label class="emergency-label" for="is-emergency">
-                        <input id="is-emergency"
-                               name="is_emergency"
-                               type="checkbox"
-                               value="true">
-                        <span class="emergency-title">
-                            This appointment request may need urgent attention
-                        </span>
-                    </label>
-
-                    <span class="field-hint">
-                        Selecting this option flags the request for staff
-                        awareness. It does not provide medical triage or
-                        guarantee priority or immediate treatment. For a
-                        potentially life-threatening emergency, seek
-                        emergency medical care immediately instead of
-                        waiting for an appointment.
-                    </span>
-                </div>
-
-                <div class="booking-actions">
-                    <button class="primary-button"
-                            id="submit-button"
-                            type="submit">
-                        Confirm Appointment
-                    </button>
-
-                    <button class="secondary-button"
-                            id="check-availability"
-                            type="button">
-                        Check Availability
-                    </button>
-                </div>
-
-                <p id="booking-message"
-                   role="status"
-                   aria-live="polite"></p>
-            </form>
+        <section class="page-intro">
+            <p class="eyebrow">● SIMPLE · SECURE · CONVENIENT</p>
+            <h1 class="page-title">Your health comes first.</h1>
+            <p class="page-description">
+                Schedule your consultation in a few simple steps.
+                Choose your doctor, find a suitable time, and submit
+                your appointment request.
+            </p>
         </section>
 
-        <p class="footer-note">
-            CareSync appointment scheduling prototype.
+        <div class="booking-layout">
+            <section class="booking-card">
+                <header class="card-heading">
+                    <div class="heading-icon" aria-hidden="true">▦</div>
+                    <div>
+                        <h2>Book an appointment</h2>
+                        <p>Complete the details below to schedule your visit.</p>
+                    </div>
+                </header>
+
+                <div class="form-content">
+                    <section class="consultation-summary" aria-live="polite">
+                        <div class="summary-left">
+                            <div class="summary-icon" aria-hidden="true">✚</div>
+                            <div>
+                                <span class="summary-caption">Selected consultation</span>
+                                <h2 class="summary-name" id="consultation-name">
+                                    {{ consultation_name }}
+                                </h2>
+                                <p class="summary-price" id="consultation-price">
+                                    Consultation fee: ₹{{ consultation_price }}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="fee-label">CONSULTATION</span>
+                    </section>
+
+                    <form id="booking-form">
+                        <section class="form-section">
+                            <h3 class="section-heading">
+                                <span class="section-number">01</span>
+                                Consultation details
+                            </h3>
+
+                            <div class="form-grid">
+                                <div class="form-field full-width">
+                                    <label for="consultation-type">
+                                        Consultation type <span class="required">*</span>
+                                    </label>
+                                    <select id="consultation-type"
+                                            name="consultation_type"
+                                            required>
+                                        <option value="video"
+                                            {% if consultation_type == 'video' %}selected{% endif %}>
+                                            Video Visit
+                                        </option>
+                                        <option value="phone"
+                                            {% if consultation_type == 'phone' %}selected{% endif %}>
+                                            Phone Call
+                                        </option>
+                                        <option value="in_person"
+                                            {% if consultation_type == 'in_person' %}selected{% endif %}>
+                                            In Person
+                                        </option>
+                                        <option value="home"
+                                            {% if consultation_type == 'home' %}selected{% endif %}>
+                                            Home Visit
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="patient-name">
+                                        Patient name <span class="required">*</span>
+                                    </label>
+                                    <input id="patient-name"
+                                           name="patient_name"
+                                           type="text"
+                                           minlength="2"
+                                           maxlength="100"
+                                           autocomplete="name"
+                                           placeholder="Enter full name"
+                                           required>
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="doctor-id">
+                                        Choose doctor <span class="required">*</span>
+                                    </label>
+                                    <select id="doctor-id" name="doctor_id" required>
+                                        <option value="">Select a doctor</option>
+                                        {% for doctor in doctors %}
+                                        <option value="{{ doctor.id }}">
+                                            {{ doctor.name }} — {{ doctor.specialty }}
+                                            ({{ doctor.room_number }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="form-field" id="address-field" hidden>
+                                    <label for="home-address">
+                                        Home visit address <span class="required">*</span>
+                                    </label>
+                                    <input id="home-address"
+                                           name="address"
+                                           type="text"
+                                           maxlength="250"
+                                           autocomplete="street-address"
+                                           placeholder="Enter complete address">
+                                    <span class="field-hint">
+                                        Required for home visits only.
+                                    </span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="form-section">
+                            <h3 class="section-heading">
+                                <span class="section-number">02</span>
+                                Date and time
+                            </h3>
+
+                            <div class="form-grid">
+                                <div class="form-field">
+                                    <label for="appointment-date">
+                                        Appointment date <span class="required">*</span>
+                                    </label>
+                                    <input id="appointment-date"
+                                           name="appointment_date"
+                                           type="date"
+                                           min="{{ today }}"
+                                           required>
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="start-time">
+                                        Start time <span class="required">*</span>
+                                    </label>
+                                    <input id="start-time"
+                                           name="start_time"
+                                           type="time"
+                                           required>
+                                </div>
+
+                                <div class="form-field">
+                                    <label for="duration">
+                                        Appointment duration <span class="required">*</span>
+                                    </label>
+                                    <select id="duration"
+                                            name="duration_minutes"
+                                            required>
+                                        <option value="15">15 minutes</option>
+                                        <option value="30" selected>30 minutes</option>
+                                        <option value="45">45 minutes</option>
+                                        <option value="60">60 minutes</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-field">
+                                    <label>Availability</label>
+                                    <span class="field-hint">
+                                        Check your selected slot before submitting.
+                                        Doctor working hours and availability apply.
+                                    </span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="form-section">
+                            <h3 class="section-heading">
+                                <span class="section-number">03</span>
+                                Additional information
+                            </h3>
+
+                            <div class="form-grid">
+                                <div class="form-field full-width">
+                                    <label for="reason">Reason for visit</label>
+                                    <textarea id="reason"
+                                              name="reason"
+                                              rows="3"
+                                              maxlength="1000"
+                                              placeholder="Briefly describe the reason for your appointment (optional)"></textarea>
+                                </div>
+
+                                <div class="form-field full-width emergency-field">
+                                    <label class="emergency-label" for="is-emergency">
+                                        <input id="is-emergency"
+                                               name="is_emergency"
+                                               type="checkbox"
+                                               value="true">
+                                        <span class="emergency-title">
+                                            This request may need urgent attention
+                                        </span>
+                                    </label>
+                                    <span class="field-hint">
+                                        This flag is for staff awareness only. It does
+                                        not provide medical triage or guarantee priority.
+                                        For a potentially life-threatening emergency,
+                                        seek emergency medical care immediately rather
+                                        than waiting for an appointment.
+                                    </span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div class="booking-actions">
+                            <button class="primary-button"
+                                    id="submit-button"
+                                    type="submit">
+                                Confirm appointment →
+                            </button>
+
+                            <button class="secondary-button"
+                                    id="check-availability"
+                                    type="button">
+                                Check availability
+                            </button>
+                        </div>
+
+                        <p id="booking-message"
+                           role="status"
+                           aria-live="polite"></p>
+                    </form>
+                </div>
+            </section>
+
+            <aside class="sidebar">
+                <section class="sidebar-card">
+                    <h2 class="sidebar-title">How it works</h2>
+
+                    <div class="step-item">
+                        <div class="step-icon" aria-hidden="true">01</div>
+                        <div>
+                            <h3>Choose your doctor</h3>
+                            <p>Select a doctor and consultation type that suits your needs.</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-icon" aria-hidden="true">02</div>
+                        <div>
+                            <h3>Select a time</h3>
+                            <p>Pick your preferred date and check the availability.</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-icon" aria-hidden="true">03</div>
+                        <div>
+                            <h3>Confirm your request</h3>
+                            <p>Submit the form to create your appointment request.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="sidebar-card privacy-card">
+                    <div class="privacy-icon" aria-hidden="true">✓</div>
+                    <h2 class="sidebar-title">Designed around your care</h2>
+                    <p>
+                        CareSync brings appointment details together in
+                        one place to help make scheduling clearer and
+                        more convenient.
+                    </p>
+                </section>
+            </aside>
+        </div>
+
+        <footer class="footer-note">
+            CareSync · Healthcare appointment scheduling prototype<br>
             Consultation fees are displayed in Indian rupees.
-        </p>
+        </footer>
     </main>
 
     <script>
+        "use strict";
+
         const form = document.getElementById("booking-form");
         const typeSelect = document.getElementById("consultation-type");
         const addressField = document.getElementById("address-field");
@@ -464,12 +923,17 @@
 
         const prices = {{ consultation_prices | tojson }};
 
-        const names = {{ {
-            "video": "Video Visit",
-            "phone": "Phone Call",
-            "in_person": "In Person",
-            "home": "Home Visit"
-        } | tojson }};
+        const names = {
+            video: "Video Visit",
+            phone: "Phone Call",
+            in_person: "In Person",
+            home: "Home Visit"
+        };
+
+        function showMessage(text, type = "") {
+            message.textContent = text;
+            message.className = type ? `message-${type}` : "";
+        }
 
         function updateConsultation() {
             const type = typeSelect.value;
@@ -497,9 +961,7 @@
                 doctor_id: document.getElementById("doctor-id").value,
                 appointment_date: document.getElementById("appointment-date").value,
                 start_time: document.getElementById("start-time").value,
-                duration_minutes: Number(
-                    document.getElementById("duration").value
-                ),
+                duration_minutes: Number(document.getElementById("duration").value),
                 reason: document.getElementById("reason").value.trim(),
                 consultation_type: typeSelect.value,
                 address: typeSelect.value === "home"
@@ -510,25 +972,15 @@
         }
 
         function formatAlternative(slot) {
-            if (slot.display) {
-                return slot.display;
-            }
+            if (slot.display) return slot.display;
 
             const date = slot.appointment_date || "";
             const start = slot.start_time || "";
             const end = slot.end_time || "";
 
-            if (date && start && end) {
-                return `${date}, ${start}–${end}`;
-            }
-
-            if (date && start) {
-                return `${date}, ${start}`;
-            }
-
-            if (start && end) {
-                return `${start}–${end}`;
-            }
+            if (date && start && end) return `${date}, ${start}–${end}`;
+            if (date && start) return `${date}, ${start}`;
+            if (start && end) return `${start}–${end}`;
 
             return start || date || "Alternative slot";
         }
@@ -541,14 +993,17 @@
 
             if (!data.doctor_id ||
                 !data.appointment_date ||
-                !data.start_time) {
-                message.textContent =
-                    "Please select a doctor, date, and time first.";
+                !data.start_time ||
+                !data.duration_minutes) {
+                showMessage(
+                    "Please select a doctor, date, time, and duration first.",
+                    "error"
+                );
                 return;
             }
 
-            message.textContent = "Checking availability...";
             availabilityButton.disabled = true;
+            showMessage("Checking availability...");
 
             try {
                 const params = new URLSearchParams({
@@ -564,28 +1019,34 @@
 
                 const result = await response.json();
 
-                if (!response.ok || !result.success) {
-                    message.textContent =
-                        result.message || "Unable to check availability.";
+                if (!response.ok || result.success === false) {
+                    showMessage(
+                        result.message || result.error ||
+                        "Unable to check availability.",
+                        "error"
+                    );
                     return;
                 }
 
-                message.textContent = result.message ||
+                showMessage(
+                    result.message ||
                     (result.available
                         ? "This time is available."
-                        : "This time is not available.");
+                        : "This time is unavailable."),
+                    result.available ? "success" : "error"
+                );
 
                 if (!result.available && result.alternatives?.length) {
-                    const alternatives = result.alternatives
-                        .map(formatAlternative)
-                        .join(", ");
-
                     message.textContent +=
-                        "\nSuggested alternatives: " + alternatives;
+                        "\nSuggested alternatives: " +
+                        result.alternatives.map(formatAlternative).join("; ");
                 }
             } catch (error) {
-                message.textContent =
-                    "Could not check availability. Please try again.";
+                console.error("Availability check failed:", error);
+                showMessage(
+                    "Could not check availability. Please try again.",
+                    "error"
+                );
             } finally {
                 availabilityButton.disabled = false;
             }
@@ -594,22 +1055,19 @@
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
 
-            if (!form.reportValidity()) {
-                return;
-            }
+            if (!form.reportValidity()) return;
 
             const data = getBookingData();
 
             if (data.consultation_type === "home" && !data.address) {
-                message.textContent =
-                    "Please enter the home visit address.";
+                showMessage("Please enter the home visit address.", "error");
                 addressInput.focus();
                 return;
             }
 
-            message.textContent = "Submitting appointment...";
             submitButton.disabled = true;
             availabilityButton.disabled = true;
+            showMessage("Submitting appointment...");
 
             try {
                 const response = await fetch("/api/appointments", {
@@ -623,18 +1081,26 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    message.textContent =
-                        "Appointment booked successfully. Opening dashboard...";
+                    showMessage(
+                        "Appointment booked successfully. Opening dashboard...",
+                        "success"
+                    );
+
                     window.location.href = "/dashboard";
                     return;
                 }
 
-                message.textContent = result.message ||
-                    result.error ||
-                    "Booking failed. Please review your details and try again.";
+                showMessage(
+                    result.message || result.error ||
+                    "Booking failed. Please check your details and try again.",
+                    "error"
+                );
             } catch (error) {
-                message.textContent =
-                    "Could not submit the booking. Please try again.";
+                console.error("Appointment booking failed:", error);
+                showMessage(
+                    "Could not submit your booking. Please try again.",
+                    "error"
+                );
             } finally {
                 submitButton.disabled = false;
                 availabilityButton.disabled = false;
