@@ -1,421 +1,260 @@
+```html
+<script>
+(() => {
+    const form = document.getElementById("booking-form");
+    const typeSelect = document.getElementById("consultation-type");
+    const addressField = document.getElementById("address-field");
+    const addressInput = document.getElementById("home-address");
+    const emergencyInput = document.getElementById("is-emergency");
+    const priceLabel = document.getElementById("consultation-price");
+    const consultationName = document.getElementById("consultation-name");
+    const message = document.getElementById("booking-message");
+    const submitButton = document.getElementById("submit-button");
+    const availabilityButton = document.getElementById("check-availability");
 
-"""
-CareSync - Smart Hospital Appointment Scheduler
-Flask application routes and REST API.
-"""
+    const prices = {{ consultation_prices | tojson }};
+    const names = {{ {
+        "video": "Video Visit",
+        "phone": "Phone Call",
+        "in_person": "In Person",
+        "home": "Home Visit"
+    } | tojson }};
 
-import os
-from datetime import date
+    let busy = false;
 
-from flask import Flask, render_template, request, jsonify
-
-from database import (
-    init_db,
-    get_all_doctors,
-    get_appointments,
-)
-
-from scheduler import (
-    CONSULTATION_TYPES,
-    book_appointment,
-    cancel_appointment,
-    reschedule_appointment,
-    check_doctor_availability,
-    find_alternative_slots,
-)
-
-
-app = Flask(__name__)
-
-app.config["SECRET_KEY"] = os.environ.get(
-    "SECRET_KEY",
-    "caresync-hackathon-secret-key-2026",
-)
-
-with app.app_context():
-    init_db()
-
-
-# -------------------- CONSULTATION SETTINGS --------------------
-
-CONSULTATION_NAMES = {
-    "video": "Video Visit",
-    "phone": "Phone Call",
-    "in_person": "In Person",
-    "home": "Home Visit",
-}
-
-CONSULTATION_PRICES = {
-    key: value["price"]
-    for key, value in CONSULTATION_TYPES.items()
-}
-
-
-# -------------------- HOME PAGE --------------------
-
-@app.route("/")
-def index():
-    doctors = get_all_doctors()
-    today_str = date.today().isoformat()
-
-    recent_appointments = get_appointments(
-        date=today_str,
-        status="SCHEDULED",
-    )
-
-    return render_template(
-        "index.html",
-        doctors=doctors,
-        today=today_str,
-        recent_appointments=recent_appointments,
-    )
-
-
-# -------------------- BOOKING PAGE --------------------
-
-@app.route("/book")
-def booking():
-    doctors = get_all_doctors()
-
-    consultation_type = request.args.get(
-        "type",
-        "in_person",
-    )
-
-    if consultation_type not in CONSULTATION_NAMES:
-        consultation_type = "in_person"
-
-    return render_template(
-        "booking.html",
-        doctors=doctors,
-        consultation_type=consultation_type,
-        consultation_name=CONSULTATION_NAMES[consultation_type],
-        consultation_price=CONSULTATION_PRICES[consultation_type],
-        consultation_prices=CONSULTATION_PRICES,
-        today=date.today().isoformat(),
-    )
-
-
-# -------------------- HOSPITAL DASHBOARD --------------------
-
-@app.route("/dashboard")
-def dashboard():
-    doctors = get_all_doctors()
-    today_str = date.today().isoformat()
-    appointments = get_appointments()
-
-    metrics = {
-        "total": len(appointments),
-        "scheduled": sum(
-            1 for a in appointments
-            if a["status"] == "SCHEDULED"
-        ),
-        "cancelled": sum(
-            1 for a in appointments
-            if a["status"] == "CANCELLED"
-        ),
-        "today": sum(
-            1 for a in appointments
-            if a["appointment_date"] == today_str
-            and a["status"] == "SCHEDULED"
-        ),
-        "doctors_count": len(doctors),
+    function showMessage(text, type = "info") {
+        message.textContent = text;
+        message.style.color =
+            type === "error" ? "#b42318" :
+            type === "success" ? "#087f8c" :
+            "#20323a";
     }
 
-    return render_template(
-        "dashboard.html",
-        doctors=doctors,
-        appointments=appointments,
-        today=today_str,
-        metrics=metrics,
-    )
+    async function readResponse(response) {
+        const text = await response.text();
+        if (!text) return {};
 
+        try {
+            return JSON.parse(text);
+        } catch {
+            throw new Error(
+                "Invalid server response. Check the Flask terminal."
+            );
+        }
+    }
 
-# -------------------- DOCTOR API --------------------
+    function updateConsultation() {
+        const type = typeSelect.value;
+        const homeVisit = type === "home";
 
-@app.route("/api/doctors", methods=["GET"])
-def api_get_doctors():
-    return jsonify({
-        "success": True,
-        "doctors": get_all_doctors(),
-    })
+        addressField.hidden = !homeVisit;
+        addressInput.required = homeVisit;
 
+        if (!homeVisit) addressInput.value = "";
 
-# -------------------- APPOINTMENT LIST API --------------------
+        if (Object.prototype.hasOwnProperty.call(prices, type)) {
+            priceLabel.textContent = "Consultation fee: ₹" + prices[type];
+            consultationName.textContent = names[type];
+        } else {
+            priceLabel.textContent = "Price unavailable";
+            consultationName.textContent = "Select a consultation";
+        }
+    }
 
-@app.route("/api/appointments", methods=["GET"])
-def api_get_appointments():
-    doctor_id = request.args.get("doctor_id", type=int)
-    appointment_date = request.args.get("date")
-    status = request.args.get("status")
+    function getBookingData() {
+        return {
+            patient_name: document.getElementById("patient-name").value.trim(),
+            doctor_id: document.getElementById("doctor-id").value,
+            appointment_date: document.getElementById("appointment-date").value,
+            start_time: document.getElementById("start-time").value,
+            duration_minutes: Number(document.getElementById("duration").value),
+            reason: document.getElementById("reason").value.trim(),
+            consultation_type: typeSelect.value,
+            address: typeSelect.value === "home"
+                ? addressInput.value.trim()
+                : "",
+            is_emergency: emergencyInput.checked
+        };
+    }
 
-    if status and status.upper() == "ALL":
-        status = None
+    function validateSlot(data) {
+        const fields = [
+            ["doctor-id", "Please select a doctor."],
+            ["appointment-date", "Please select an appointment date."],
+            ["start-time", "Please select a start time."],
+            ["duration", "Please select a duration."]
+        ];
 
-    appointments = get_appointments(
-        doctor_id=doctor_id,
-        date=appointment_date,
-        status=status,
-    )
+        for (const [id, errorText] of fields) {
+            const field = document.getElementById(id);
 
-    return jsonify({
-        "success": True,
-        "appointments": appointments,
-    })
+            if (!field.value || !field.checkValidity()) {
+                showMessage(errorText, "error");
+                field.focus();
+                return false;
+            }
+        }
 
+        if (!Number.isInteger(data.duration_minutes) ||
+            data.duration_minutes <= 0) {
+            showMessage("Please select a valid duration.", "error");
+            return false;
+        }
 
-# -------------------- BOOK APPOINTMENT API --------------------
+        return true;
+    }
 
-@app.route("/api/appointments", methods=["POST"])
-def api_book_appointment():
-    data = (
-        request.get_json(silent=True)
-        if request.is_json
-        else request.form
-    )
+    function formatAlternative(slot) {
+        if (typeof slot === "string") return slot;
+        if (!slot || typeof slot !== "object") return "Alternative slot";
+        if (slot.display) return slot.display;
 
-    if data is None:
-        return jsonify({
-            "success": False,
-            "message": "Invalid request data.",
-        }), 400
+        const date = slot.appointment_date || "";
+        const start = slot.start_time || "";
+        const end = slot.end_time || "";
 
-    patient_name = data.get("patient_name", "").strip()
-    doctor_id = data.get("doctor_id")
-    appointment_date = data.get("appointment_date", "").strip()
-    start_time = data.get("start_time", "").strip()
-    duration_minutes = data.get("duration_minutes", 30)
-    reason = data.get("reason", "").strip()
+        if (date && start && end) return `${date}, ${start}–${end}`;
+        if (date && start) return `${date}, ${start}`;
+        if (start && end) return `${start}–${end}`;
 
-    consultation_type = data.get(
-        "consultation_type",
-        "in_person",
-    )
-    address = data.get("address", "").strip()
+        return start || date || "Alternative slot";
+    }
 
-    emergency_value = data.get("is_emergency", False)
-    is_emergency = (
-        str(emergency_value).strip().lower()
-        in ("true", "1", "yes", "on")
-    )
+    typeSelect.addEventListener("change", updateConsultation);
+    updateConsultation();
 
-    result = book_appointment(
-        patient_name=patient_name,
-        doctor_id=doctor_id,
-        appointment_date=appointment_date,
-        start_time=start_time,
-        duration_minutes=duration_minutes,
-        reason=reason,
-        consultation_type=consultation_type,
-        address=address,
-        is_emergency=is_emergency,
-    )
+    // CHECK AVAILABILITY
+    availabilityButton.addEventListener("click", async () => {
+        if (busy) return;
 
-    if result["success"]:
-        return jsonify(result), 201
+        const data = getBookingData();
+        if (!validateSlot(data)) return;
 
-    error_type = result.get("error_type")
+        busy = true;
+        availabilityButton.disabled = true;
+        submitButton.disabled = true;
+        showMessage("Checking availability...");
 
-    if error_type == "VALIDATION_ERROR":
-        return jsonify(result), 400
+        try {
+            const params = new URLSearchParams({
+                doctor_id: data.doctor_id,
+                date: data.appointment_date,
+                time: data.start_time,
+                duration: String(data.duration_minutes)
+            });
 
-    if error_type == "DATABASE_ERROR":
-        return jsonify(result), 500
+            const response = await fetch(
+                "/api/check-availability?" + params.toString(),
+                { headers: { "Accept": "application/json" } }
+            );
 
-    return jsonify(result), 409
+            const result = await readResponse(response);
 
+            if (!response.ok || result.success !== true) {
+                showMessage(
+                    result.message || result.error ||
+                    `Availability check failed (HTTP ${response.status}).`,
+                    "error"
+                );
+                return;
+            }
 
-# -------------------- CANCEL APPOINTMENT API --------------------
+            if (typeof result.available !== "boolean") {
+                showMessage(
+                    "The server did not return an availability status.",
+                    "error"
+                );
+                return;
+            }
 
-@app.route(
-    "/api/appointments/<int:appointment_id>/cancel",
-    methods=["POST"],
-)
-def api_cancel_appointment(appointment_id):
-    result = cancel_appointment(appointment_id)
+            if (result.available) {
+                showMessage(
+                    result.message || "This time is available.",
+                    "success"
+                );
+            } else {
+                let text = result.message || "This time is unavailable.";
 
-    if result["success"]:
-        return jsonify(result), 200
+                if (Array.isArray(result.alternatives) &&
+                    result.alternatives.length) {
+                    text += "\nSuggested alternatives: " +
+                        result.alternatives.map(formatAlternative).join("; ");
+                }
 
-    status_code = (
-        404
-        if result.get("message") == "Appointment not found."
-        else 400
-    )
+                showMessage(text, "error");
+            }
+        } catch (error) {
+            console.error("Availability error:", error);
+            showMessage(error.message || "Unable to check availability.", "error");
+        } finally {
+            busy = false;
+            availabilityButton.disabled = false;
+            submitButton.disabled = false;
+        }
+    });
 
-    return jsonify(result), status_code
+    // CONFIRM APPOINTMENT
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
+        if (busy || !form.reportValidity()) return;
 
-# -------------------- RESCHEDULE APPOINTMENT API --------------------
+        const data = getBookingData();
 
-@app.route(
-    "/api/appointments/<int:appointment_id>/reschedule",
-    methods=["POST"],
-)
-def api_reschedule_appointment(appointment_id):
-    data = request.get_json(silent=True)
+        if (data.patient_name.length < 2) {
+            showMessage("Please enter the patient's name.", "error");
+            document.getElementById("patient-name").focus();
+            return;
+        }
 
-    if not isinstance(data, dict):
-        return jsonify({
-            "success": False,
-            "error_type": "VALIDATION_ERROR",
-            "message": "Please provide appointment details as JSON.",
-        }), 400
+        if (!validateSlot(data)) return;
 
-    appointment_date = data.get("appointment_date")
-    start_time = data.get("start_time")
-    duration_minutes = data.get("duration_minutes", 30)
+        if (data.consultation_type === "home" && !data.address) {
+            showMessage("Please enter the home visit address.", "error");
+            addressInput.focus();
+            return;
+        }
 
-    if (
-        not isinstance(appointment_date, str)
-        or not appointment_date.strip()
-    ):
-        return jsonify({
-            "success": False,
-            "error_type": "VALIDATION_ERROR",
-            "message": "Appointment date is required.",
-        }), 400
+        busy = true;
+        submitButton.disabled = true;
+        availabilityButton.disabled = true;
+        showMessage("Submitting appointment...");
 
-    if not isinstance(start_time, str) or not start_time.strip():
-        return jsonify({
-            "success": False,
-            "error_type": "VALIDATION_ERROR",
-            "message": "Appointment start time is required.",
-        }), 400
+        try {
+            const response = await fetch("/api/appointments", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(data)
+            });
 
-    result = reschedule_appointment(
-        appointment_id=appointment_id,
-        appointment_date=appointment_date.strip(),
-        start_time=start_time.strip(),
-        duration_minutes=duration_minutes,
-    )
+            const result = await readResponse(response);
 
-    if result["success"]:
-        return jsonify(result), 200
+            if (!response.ok || result.success !== true) {
+                showMessage(
+                    result.message || result.error ||
+                    `Booking failed (HTTP ${response.status}).`,
+                    "error"
+                );
+                return;
+            }
 
-    error_type = result.get("error_type")
-
-    if error_type == "NOT_FOUND":
-        status_code = 404
-    elif error_type in ("VALIDATION_ERROR", "INVALID_STATUS"):
-        status_code = 400
-    elif error_type in ("CONFLICT", "UNAVAILABLE"):
-        status_code = 409
-    else:
-        status_code = 500
-
-    return jsonify(result), status_code
-
-
-# -------------------- AVAILABILITY API --------------------
-
-@app.route("/api/check-availability", methods=["GET"])
-def api_check_availability():
-    doctor_id = request.args.get("doctor_id", type=int)
-    appointment_date = request.args.get("date")
-    start_time = request.args.get("time")
-    duration_minutes = request.args.get(
-        "duration",
-        default=30,
-        type=int,
-    )
-
-    if not (doctor_id and appointment_date and start_time):
-        return jsonify({
-            "success": False,
-            "message": "Missing required query parameters.",
-        }), 400
-
-    is_available, message, conflict = check_doctor_availability(
-        doctor_id=doctor_id,
-        appointment_date=appointment_date,
-        start_time=start_time,
-        duration_minutes=duration_minutes,
-    )
-
-    alternatives = []
-
-    if not is_available:
-        alternatives = find_alternative_slots(
-            doctor_id=doctor_id,
-            appointment_date=appointment_date,
-            duration_minutes=duration_minutes,
-            requested_start_time=start_time,
-        )
-
-    return jsonify({
-        "success": True,
-        "available": is_available,
-        "message": message,
-        "conflict": conflict,
-        "alternatives": alternatives,
-    })
-
-
-# -------------------- STATISTICS API --------------------
-
-@app.route("/api/stats", methods=["GET"])
-def api_get_stats():
-    today_str = date.today().isoformat()
-    appointments = get_appointments()
-    doctors = get_all_doctors()
-
-    return jsonify({
-        "success": True,
-        "stats": {
-            "total": len(appointments),
-            "scheduled": sum(
-                1 for a in appointments
-                if a["status"] == "SCHEDULED"
-            ),
-            "cancelled": sum(
-                1 for a in appointments
-                if a["status"] == "CANCELLED"
-            ),
-            "today": sum(
-                1 for a in appointments
-                if a["appointment_date"] == today_str
-                and a["status"] == "SCHEDULED"
-            ),
-            "doctors": len(doctors),
-        },
-    })
-
-
-# -------------------- ERROR HANDLERS --------------------
-
-@app.errorhandler(404)
-def not_found(error):
-    if request.path.startswith("/api/"):
-        return jsonify({
-            "success": False,
-            "message": "API endpoint not found.",
-        }), 404
-
-    return render_template(
-        "index.html",
-        error="Page not found",
-        doctors=get_all_doctors(),
-        today=date.today().isoformat(),
-        recent_appointments=[],
-    ), 404
-
-
-@app.errorhandler(500)
-def server_error(error):
-    if request.path.startswith("/api/"):
-        return jsonify({
-            "success": False,
-            "message": "Internal server error.",
-        }), 500
-
-    return "CareSync encountered an internal error.", 500
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(
-        host="127.0.0.1",
-        port=port,
-        debug=True,
-    )
+            showMessage("Appointment booked successfully. Opening dashboard...", "success");
+            window.location.assign("/dashboard");
+        } catch (error) {
+            console.error("Booking error:", error);
+            showMessage(
+                error.message || "Could not contact the server. Check that CareSync is running.",
+                "error"
+            );
+        } finally {
+            busy = false;
+            submitButton.disabled = false;
+            availabilityButton.disabled = false;
+        }
+    });
+})();
+</script>
+```
