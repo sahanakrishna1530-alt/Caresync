@@ -47,12 +47,20 @@ def index():
         status="SCHEDULED",
     )
 
+    
     return render_template(
-        "index.html",
+        "booking.html",
         doctors=doctors,
-        today=today_str,
-        recent_appointments=recent_appointments,
+        consultation_type=consultation_type,
+        consultation_name=consultation_names[consultation_type],
+        consultation_price=__import__("scheduler").CONSULTATION_TYPES[consultation_type]["price"],
+        consultation_prices={
+            key: value["price"]
+            for key, value in __import__("scheduler").CONSULTATION_TYPES.items()
+        },
+        today=date.today().isoformat(),
     )
+
 
 
 # -------------------- BOOKING PAGE --------------------
