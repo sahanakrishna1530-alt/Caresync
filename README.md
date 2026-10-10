@@ -137,3 +137,7 @@ All 10 test cases verify:
    - Click **Cancel** on any scheduled appointment.
    - Notice the status badge dynamically changes to **Cancelled** and metrics update without reloading.
    - Returning to the booking portal, that previously booked slot is now available to be booked again.
+## Live Website
+
+**Try CareSync here:** [Open CareSync](https://ingredients-leg-flu-bass.trycloudflare.com)
+
