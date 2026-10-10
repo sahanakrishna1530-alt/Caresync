@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -161,6 +161,40 @@
             line-height: 1.5;
         }
 
+        .emergency-field {
+            padding: 16px;
+            border: 1px solid #f0d5d5;
+            border-radius: 12px;
+            background: #fffafa;
+        }
+
+        .emergency-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .emergency-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            min-height: 18px;
+            flex: 0 0 18px;
+            margin: 2px 0 0;
+            accent-color: #b42318;
+        }
+
+        .emergency-title {
+            color: #912018;
+            font-weight: 700;
+        }
+
+        .emergency-field .field-hint {
+            display: block;
+            margin: 10px 0 0 28px;
+        }
+
         [hidden] {
             display: none !important;
         }
@@ -207,6 +241,7 @@
             color: var(--teal-dark);
             line-height: 1.6;
             overflow-wrap: anywhere;
+            white-space: pre-line;
         }
 
         .footer-note {
@@ -255,12 +290,9 @@
         </header>
 
         <section class="booking-card">
-            <section class="selected-consultation"
-                     aria-live="polite">
+            <section class="selected-consultation" aria-live="polite">
                 <p class="eyebrow">Your selected consultation</p>
-                <h2 id="consultation-name">
-                    {{ consultation_name }}
-                </h2>
+                <h2 id="consultation-name">{{ consultation_name }}</h2>
                 <p id="consultation-price">
                     Consultation fee: &#8377;{{ consultation_price }}
                 </p>
@@ -270,9 +302,7 @@
 
             <form id="booking-form" class="booking-form">
                 <div class="form-field full-width">
-                    <label for="consultation-type">
-                        Consultation type
-                    </label>
+                    <label for="consultation-type">Consultation type</label>
 
                     <select id="consultation-type"
                             name="consultation_type"
@@ -309,9 +339,7 @@
 
                 <div class="form-field">
                     <label for="doctor-id">Choose doctor</label>
-                    <select id="doctor-id"
-                            name="doctor_id"
-                            required>
+                    <select id="doctor-id" name="doctor_id" required>
                         <option value="">Select a doctor</option>
                         {% for doctor in doctors %}
                         <option value="{{ doctor.id }}">
@@ -323,9 +351,7 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="appointment-date">
-                        Appointment date
-                    </label>
+                    <label for="appointment-date">Appointment date</label>
                     <input id="appointment-date"
                            name="appointment_date"
                            type="date"
@@ -346,9 +372,7 @@
 
                 <div class="form-field">
                     <label for="duration">Duration</label>
-                    <select id="duration"
-                            name="duration_minutes"
-                            required>
+                    <select id="duration" name="duration_minutes" required>
                         <option value="15">15 minutes</option>
                         <option value="30" selected>30 minutes</option>
                         <option value="45">45 minutes</option>
@@ -356,12 +380,8 @@
                     </select>
                 </div>
 
-                <div class="form-field"
-                     id="address-field"
-                     hidden>
-                    <label for="home-address">
-                        Home visit address
-                    </label>
+                <div class="form-field" id="address-field" hidden>
+                    <label for="home-address">Home visit address</label>
                     <input id="home-address"
                            name="address"
                            type="text"
@@ -380,6 +400,28 @@
                               rows="3"
                               maxlength="1000"
                               placeholder="Briefly describe the reason for your appointment"></textarea>
+                </div>
+
+                <!-- Emergency-awareness flag -->
+                <div class="form-field full-width emergency-field">
+                    <label class="emergency-label" for="is-emergency">
+                        <input id="is-emergency"
+                               name="is_emergency"
+                               type="checkbox"
+                               value="true">
+                        <span class="emergency-title">
+                            This appointment request may need urgent attention
+                        </span>
+                    </label>
+
+                    <span class="field-hint">
+                        Selecting this option flags the request for staff
+                        awareness. It does not provide medical triage or
+                        guarantee priority or immediate treatment. For a
+                        potentially life-threatening emergency, seek
+                        emergency medical care immediately instead of
+                        waiting for an appointment.
+                    </span>
                 </div>
 
                 <div class="booking-actions">
@@ -413,14 +455,15 @@
         const typeSelect = document.getElementById("consultation-type");
         const addressField = document.getElementById("address-field");
         const addressInput = document.getElementById("home-address");
+        const emergencyInput = document.getElementById("is-emergency");
         const priceLabel = document.getElementById("consultation-price");
         const consultationName = document.getElementById("consultation-name");
         const message = document.getElementById("booking-message");
         const submitButton = document.getElementById("submit-button");
         const availabilityButton = document.getElementById("check-availability");
 
-        // Prices and labels are supplied by Flask from the server-side list.
         const prices = {{ consultation_prices | tojson }};
+
         const names = {{ {
             "video": "Video Visit",
             "phone": "Phone Call",
@@ -454,13 +497,40 @@
                 doctor_id: document.getElementById("doctor-id").value,
                 appointment_date: document.getElementById("appointment-date").value,
                 start_time: document.getElementById("start-time").value,
-                duration_minutes: Number(document.getElementById("duration").value),
+                duration_minutes: Number(
+                    document.getElementById("duration").value
+                ),
                 reason: document.getElementById("reason").value.trim(),
                 consultation_type: typeSelect.value,
                 address: typeSelect.value === "home"
                     ? addressInput.value.trim()
-                    : ""
+                    : "",
+                is_emergency: emergencyInput.checked
             };
+        }
+
+        function formatAlternative(slot) {
+            if (slot.display) {
+                return slot.display;
+            }
+
+            const date = slot.appointment_date || "";
+            const start = slot.start_time || "";
+            const end = slot.end_time || "";
+
+            if (date && start && end) {
+                return `${date}, ${start}–${end}`;
+            }
+
+            if (date && start) {
+                return `${date}, ${start}`;
+            }
+
+            if (start && end) {
+                return `${start}–${end}`;
+            }
+
+            return start || date || "Alternative slot";
         }
 
         typeSelect.addEventListener("change", updateConsultation);
@@ -469,7 +539,9 @@
         availabilityButton.addEventListener("click", async () => {
             const data = getBookingData();
 
-            if (!data.doctor_id || !data.appointment_date || !data.start_time) {
+            if (!data.doctor_id ||
+                !data.appointment_date ||
+                !data.start_time) {
                 message.textContent =
                     "Please select a doctor, date, and time first.";
                 return;
@@ -489,6 +561,7 @@
                 const response = await fetch(
                     "/api/check-availability?" + params.toString()
                 );
+
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
@@ -503,10 +576,12 @@
                         : "This time is not available.");
 
                 if (!result.available && result.alternatives?.length) {
-                    message.textContent += "\nSuggested alternatives: " +
-                        result.alternatives
-                            .map(slot => slot.display)
-                            .join(", ");
+                    const alternatives = result.alternatives
+                        .map(formatAlternative)
+                        .join(", ");
+
+                    message.textContent +=
+                        "\nSuggested alternatives: " + alternatives;
                 }
             } catch (error) {
                 message.textContent =
@@ -534,6 +609,7 @@
 
             message.textContent = "Submitting appointment...";
             submitButton.disabled = true;
+            availabilityButton.disabled = true;
 
             try {
                 const response = await fetch("/api/appointments", {
@@ -561,8 +637,10 @@
                     "Could not submit the booking. Please try again.";
             } finally {
                 submitButton.disabled = false;
+                availabilityButton.disabled = false;
             }
         });
     </script>
 </body>
 </html>
+```
