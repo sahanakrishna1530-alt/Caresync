@@ -7,225 +7,446 @@
     <title>Book Appointment | CareSync</title>
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/style.css') }}">
+
     <style>
+        :root {
+            --teal: #087f8c;
+            --teal-dark: #066570;
+            --text: #20323a;
+            --muted: #647780;
+            --border: #dce7e9;
+            --surface: #f5fbfb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f8fbfc;
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
         .booking-page {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 24px;
+            width: min(900px, calc(100% - 32px));
+            margin: 36px auto;
         }
+
         .booking-header {
-            margin-bottom: 28px;
+            margin-bottom: 26px;
         }
-        .booking-header a {
-            color: #087f8c;
+
+        .brand {
+            color: var(--teal);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
             text-decoration: none;
         }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--teal);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .booking-header h1 {
+            margin: 20px 0 8px;
+            font-size: clamp(28px, 5vw, 38px);
+            letter-spacing: -1px;
+        }
+
+        .booking-header p {
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .booking-card {
+            padding: clamp(20px, 4vw, 36px);
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 12px 36px rgba(28, 72, 80, 0.06);
+        }
+
         .selected-consultation {
-            padding: 18px;
-            margin: 20px 0;
+            padding: 20px;
+            margin-bottom: 28px;
             border: 1px solid #c9e7e8;
             border-radius: 14px;
-            background: #f0fbfb;
+            background: var(--surface);
         }
+
+        .selected-consultation .eyebrow {
+            margin: 0 0 8px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .selected-consultation h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        #consultation-price {
+            margin: 10px 0 0;
+            color: var(--teal-dark);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .section-title {
+            margin: 0 0 20px;
+            font-size: 19px;
+        }
+
         .booking-form {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
+            gap: 20px;
         }
+
         .form-field {
             display: flex;
+            min-width: 0;
             flex-direction: column;
             gap: 8px;
         }
-        .form-field.full-width {
+
+        .form-field.full-width,
+        .booking-actions,
+        #booking-message {
             grid-column: 1 / -1;
         }
+
         .form-field label {
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 700;
         }
+
         .form-field input,
         .form-field select,
         .form-field textarea {
             width: 100%;
-            box-sizing: border-box;
-            padding: 12px;
+            min-height: 46px;
+            padding: 12px 13px;
             border: 1px solid #d5dfe3;
             border-radius: 9px;
+            background: #fff;
+            color: var(--text);
             font: inherit;
         }
+
+        .form-field textarea {
+            resize: vertical;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus,
+        .form-field textarea:focus {
+            outline: 2px solid rgba(8, 127, 140, 0.18);
+            border-color: var(--teal);
+        }
+
+        .field-hint {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
         .booking-actions {
-            grid-column: 1 / -1;
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
-            margin-top: 8px;
+            margin-top: 6px;
         }
+
         .booking-actions button {
+            min-height: 46px;
             padding: 12px 20px;
             border: 0;
             border-radius: 9px;
             cursor: pointer;
             font: inherit;
+            font-weight: 700;
         }
+
         .primary-button {
-            background: #087f8c;
+            background: var(--teal);
             color: white;
         }
+
+        .primary-button:hover {
+            background: var(--teal-dark);
+        }
+
         .secondary-button {
             background: #edf3f5;
-            color: #23343b;
+            color: var(--text);
         }
+
+        .booking-actions button:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
         #booking-message {
-            grid-column: 1 / -1;
-            white-space: pre-wrap;
+            min-height: 24px;
+            margin: 0;
+            color: var(--teal-dark);
+            line-height: 1.6;
+            overflow-wrap: anywhere;
         }
+
+        .footer-note {
+            margin-top: 22px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
         @media (max-width: 600px) {
+            .booking-page {
+                margin: 20px auto;
+            }
+
             .booking-form {
                 grid-template-columns: 1fr;
             }
+
             .form-field.full-width,
             .booking-actions,
             #booking-message {
                 grid-column: 1;
             }
-            .booking-page {
-                padding: 16px;
+
+            .booking-actions {
+                flex-direction: column;
+            }
+
+            .booking-actions button {
+                width: 100%;
             }
         }
     </style>
 </head>
+
 <body>
     <main class="booking-page">
         <header class="booking-header">
-            <a href="/">← Back to CareSync</a>
+            <a class="brand" href="/">CareSync</a>
+            <br>
+            <a class="back-link" href="/">&#8592; Back to home</a>
+
             <h1>Book your appointment</h1>
             <p>Right Patient. Right Doctor. Right Time.</p>
         </header>
 
-        <section class="selected-consultation">
-            <p>Selected consultation</p>
-            <h2>{{ consultation_name }}</h2>
-            <p id="consultation-price">Price shown after selecting consultation</p>
+        <section class="booking-card">
+            <section class="selected-consultation"
+                     aria-live="polite">
+                <p class="eyebrow">Your selected consultation</p>
+                <h2 id="consultation-name">
+                    {{ consultation_name }}
+                </h2>
+                <p id="consultation-price">
+                    Consultation fee: &#8377;{{ consultation_price }}
+                </p>
+            </section>
+
+            <h3 class="section-title">Appointment details</h3>
+
+            <form id="booking-form" class="booking-form">
+                <div class="form-field full-width">
+                    <label for="consultation-type">
+                        Consultation type
+                    </label>
+
+                    <select id="consultation-type"
+                            name="consultation_type"
+                            required>
+                        <option value="video"
+                            {% if consultation_type == 'video' %}selected{% endif %}>
+                            Video Visit
+                        </option>
+                        <option value="phone"
+                            {% if consultation_type == 'phone' %}selected{% endif %}>
+                            Phone Call
+                        </option>
+                        <option value="in_person"
+                            {% if consultation_type == 'in_person' %}selected{% endif %}>
+                            In Person
+                        </option>
+                        <option value="home"
+                            {% if consultation_type == 'home' %}selected{% endif %}>
+                            Home Visit
+                        </option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="patient-name">Patient name</label>
+                    <input id="patient-name"
+                           name="patient_name"
+                           type="text"
+                           minlength="2"
+                           maxlength="100"
+                           autocomplete="name"
+                           required>
+                </div>
+
+                <div class="form-field">
+                    <label for="doctor-id">Choose doctor</label>
+                    <select id="doctor-id"
+                            name="doctor_id"
+                            required>
+                        <option value="">Select a doctor</option>
+                        {% for doctor in doctors %}
+                        <option value="{{ doctor.id }}">
+                            {{ doctor.name }} — {{ doctor.specialty }}
+                            ({{ doctor.room_number }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="appointment-date">
+                        Appointment date
+                    </label>
+                    <input id="appointment-date"
+                           name="appointment_date"
+                           type="date"
+                           min="{{ today }}"
+                           required>
+                </div>
+
+                <div class="form-field">
+                    <label for="start-time">Start time</label>
+                    <input id="start-time"
+                           name="start_time"
+                           type="time"
+                           required>
+                    <span class="field-hint">
+                        Doctor availability and working hours apply.
+                    </span>
+                </div>
+
+                <div class="form-field">
+                    <label for="duration">Duration</label>
+                    <select id="duration"
+                            name="duration_minutes"
+                            required>
+                        <option value="15">15 minutes</option>
+                        <option value="30" selected>30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">60 minutes</option>
+                    </select>
+                </div>
+
+                <div class="form-field"
+                     id="address-field"
+                     hidden>
+                    <label for="home-address">
+                        Home visit address
+                    </label>
+                    <input id="home-address"
+                           name="address"
+                           type="text"
+                           maxlength="250"
+                           autocomplete="street-address"
+                           placeholder="Enter the complete visit address">
+                    <span class="field-hint">
+                        Required only for a Home Visit.
+                    </span>
+                </div>
+
+                <div class="form-field full-width">
+                    <label for="reason">Reason for visit</label>
+                    <textarea id="reason"
+                              name="reason"
+                              rows="3"
+                              maxlength="1000"
+                              placeholder="Briefly describe the reason for your appointment"></textarea>
+                </div>
+
+                <div class="booking-actions">
+                    <button class="primary-button"
+                            id="submit-button"
+                            type="submit">
+                        Confirm Appointment
+                    </button>
+
+                    <button class="secondary-button"
+                            id="check-availability"
+                            type="button">
+                        Check Availability
+                    </button>
+                </div>
+
+                <p id="booking-message"
+                   role="status"
+                   aria-live="polite"></p>
+            </form>
         </section>
 
-        <form id="booking-form" class="booking-form">
-            <div class="form-field full-width">
-                <label for="consultation-type">Consultation type</label>
-                <select id="consultation-type" name="consultation_type" required>
-                    <option value="video"
-                        {% if consultation_type == 'video' %}selected{% endif %}>
-                        Video Visit
-                    </option>
-                    <option value="phone"
-                        {% if consultation_type == 'phone' %}selected{% endif %}>
-                        Phone Call
-                    </option>
-                    <option value="in_person"
-                        {% if consultation_type == 'in_person' %}selected{% endif %}>
-                        In Person
-                    </option>
-                    <option value="home"
-                        {% if consultation_type == 'home' %}selected{% endif %}>
-                        Home Visit
-                    </option>
-                </select>
-            </div>
-
-            <div class="form-field">
-                <label for="patient-name">Patient name</label>
-                <input id="patient-name" name="patient_name"
-                       type="text" required maxlength="100">
-            </div>
-
-            <div class="form-field">
-                <label for="doctor-id">Choose doctor</label>
-                <select id="doctor-id" name="doctor_id" required>
-                    <option value="">Select a doctor</option>
-                    {% for doctor in doctors %}
-                    <option value="{{ doctor.id }}">
-                        {{ doctor.name }}{% if doctor.specialization is defined %} — {{ doctor.specialization }}{% endif %}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-field">
-                <label for="appointment-date">Appointment date</label>
-                <input id="appointment-date" name="appointment_date"
-                       type="date" min="{{ today or '' }}" required>
-            </div>
-
-            <div class="form-field">
-                <label for="start-time">Start time</label>
-                <input id="start-time" name="start_time"
-                       type="time" required>
-            </div>
-
-            <div class="form-field">
-                <label for="duration">Duration</label>
-                <select id="duration" name="duration_minutes" required>
-                    <option value="15">15 minutes</option>
-                    <option value="30" selected>30 minutes</option>
-                    <option value="45">45 minutes</option>
-                    <option value="60">60 minutes</option>
-                </select>
-            </div>
-
-            <div class="form-field" id="address-field" hidden>
-                <label for="home-address">Home visit address</label>
-                <input id="home-address" name="address" type="text"
-                       maxlength="250" autocomplete="street-address">
-            </div>
-
-            <div class="form-field full-width">
-                <label for="reason">Reason for visit</label>
-                <textarea id="reason" name="reason"
-                          rows="3" maxlength="1000"></textarea>
-            </div>
-
-            <div class="booking-actions">
-                <button class="primary-button" type="submit">
-                    Confirm Appointment
-                </button>
-                <button class="secondary-button" id="check-availability"
-                        type="button">
-                    Check Availability
-                </button>
-            </div>
-
-            <p id="booking-message" role="status" aria-live="polite"></p>
-        </form>
+        <p class="footer-note">
+            CareSync appointment scheduling prototype.
+            Consultation fees are displayed in Indian rupees.
+        </p>
     </main>
 
     <script>
+        const form = document.getElementById("booking-form");
         const typeSelect = document.getElementById("consultation-type");
         const addressField = document.getElementById("address-field");
         const addressInput = document.getElementById("home-address");
         const priceLabel = document.getElementById("consultation-price");
+        const consultationName = document.getElementById("consultation-name");
         const message = document.getElementById("booking-message");
-        const form = document.getElementById("booking-form");
+        const submitButton = document.getElementById("submit-button");
+        const availabilityButton = document.getElementById("check-availability");
 
-        const prices = {
-            video: 299,
-            phone: 199,
-            in_person: 499,
-            home: 699
-        };
+        // Prices and labels are supplied by Flask from the server-side list.
+        const prices = {{ consultation_prices | tojson }};
+        const names = {{ {
+            "video": "Video Visit",
+            "phone": "Phone Call",
+            "in_person": "In Person",
+            "home": "Home Visit"
+        } | tojson }};
 
         function updateConsultation() {
             const type = typeSelect.value;
-            addressField.hidden = type !== "home";
-            addressInput.required = type === "home";
+            const isHomeVisit = type === "home";
 
-            if (type !== "home") {
+            addressField.hidden = !isHomeVisit;
+            addressInput.required = isHomeVisit;
+
+            if (!isHomeVisit) {
                 addressInput.value = "";
             }
 
-            priceLabel.textContent = "Demo price: ₹" + prices[type];
+            if (Object.prototype.hasOwnProperty.call(prices, type)) {
+                priceLabel.textContent = "Consultation fee: ₹" + prices[type];
+                consultationName.textContent = names[type];
+            } else {
+                priceLabel.textContent = "Price unavailable";
+                consultationName.textContent = "Select a consultation";
+            }
         }
-
-        typeSelect.addEventListener("change", updateConsultation);
-        updateConsultation();
 
         function getBookingData() {
             return {
@@ -242,54 +463,84 @@
             };
         }
 
-        document.getElementById("check-availability")
-            .addEventListener("click", async () => {
-                const data = getBookingData();
+        typeSelect.addEventListener("change", updateConsultation);
+        updateConsultation();
 
-                if (!data.doctor_id || !data.appointment_date || !data.start_time) {
-                    message.textContent = "Please select a doctor, date, and time first.";
+        availabilityButton.addEventListener("click", async () => {
+            const data = getBookingData();
+
+            if (!data.doctor_id || !data.appointment_date || !data.start_time) {
+                message.textContent =
+                    "Please select a doctor, date, and time first.";
+                return;
+            }
+
+            message.textContent = "Checking availability...";
+            availabilityButton.disabled = true;
+
+            try {
+                const params = new URLSearchParams({
+                    doctor_id: data.doctor_id,
+                    date: data.appointment_date,
+                    time: data.start_time,
+                    duration: String(data.duration_minutes)
+                });
+
+                const response = await fetch(
+                    "/api/check-availability?" + params.toString()
+                );
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    message.textContent =
+                        result.message || "Unable to check availability.";
                     return;
                 }
 
-                message.textContent = "Checking availability...";
+                message.textContent = result.message ||
+                    (result.available
+                        ? "This time is available."
+                        : "This time is not available.");
 
-                try {
-                    const params = new URLSearchParams({
-                        doctor_id: data.doctor_id,
-                        date: data.appointment_date,
-                        time: data.start_time,
-                        duration: data.duration_minutes
-                    });
-
-                    const response = await fetch("/api/check-availability?" + params);
-                    const result = await response.json();
-
-                    message.textContent = result.message ||
-                        (result.available ? "This time is available." :
-                         "This time is not available.");
-                } catch (error) {
-                    message.textContent = "Could not check availability. Please try again.";
+                if (!result.available && result.alternatives?.length) {
+                    message.textContent += "\nSuggested alternatives: " +
+                        result.alternatives
+                            .map(slot => slot.display)
+                            .join(", ");
                 }
-            });
+            } catch (error) {
+                message.textContent =
+                    "Could not check availability. Please try again.";
+            } finally {
+                availabilityButton.disabled = false;
+            }
+        });
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
 
-            if (!form.reportValidity()) return;
+            if (!form.reportValidity()) {
+                return;
+            }
 
             const data = getBookingData();
 
             if (data.consultation_type === "home" && !data.address) {
-                message.textContent = "Please enter the home visit address.";
+                message.textContent =
+                    "Please enter the home visit address.";
+                addressInput.focus();
                 return;
             }
 
             message.textContent = "Submitting appointment...";
+            submitButton.disabled = true;
 
             try {
                 const response = await fetch("/api/appointments", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
                     body: JSON.stringify(data)
                 });
 
@@ -297,15 +548,19 @@
 
                 if (response.ok && result.success) {
                     message.textContent =
-                        "Appointment booked successfully. Opening hospital dashboard...";
+                        "Appointment booked successfully. Opening dashboard...";
                     window.location.href = "/dashboard";
-                } else {
-                    message.textContent = result.message ||
-                        result.error ||
-                        "Booking failed. Please review the details and try again.";
+                    return;
                 }
+
+                message.textContent = result.message ||
+                    result.error ||
+                    "Booking failed. Please review your details and try again.";
             } catch (error) {
-                message.textContent = "Could not submit the booking. Please try again.";
+                message.textContent =
+                    "Could not submit the booking. Please try again.";
+            } finally {
+                submitButton.disabled = false;
             }
         });
     </script>
