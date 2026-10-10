@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareSync | Smart Hospital Appointment Scheduling</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts for crisp typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                <span class="brand-icon">✚</span>
+                <span class="brand-text">CareSync</span>
+                <span class="brand-badge">Hospital OS</span>
+            </a>
+            <nav class="nav-links">
+                <a href="/" class="nav-link active">Book Appointment</a>
+                <a href="/dashboard" class="nav-link">Dashboard & Records</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-badge">Smart Conflict-Free Scheduling</div>
+            <h1 class="hero-title">Book Hospital Appointments With Confidence</h1>
+            <p class="hero-subtitle">
+                Real-time doctor availability checking, automatic overlap prevention, and intelligent alternate slot recommendations.
+            </p>
+        </section>
+
+        <!-- Layout Grid -->
+        <div class="grid-container">
+            <!-- Left Card: Booking Form -->
+            <div class="card booking-card">
+                <div class="card-header">
+                    <h2 class="card-title">Schedule an Appointment</h2>
+                    <p class="card-desc">Fill in patient and physician details below</p>
+                </div>
+
+                <form id="appointment-form" class="form" novalidate>
+                    <!-- Patient Name -->
+                    <div class="form-group">
+                        <label for="patient-name" class="form-label">Patient Full Name <span class="required">*</span></label>
+                        <input 
+                            type="text" 
+                            id="patient-name" 
+                            name="patient_name" 
+                            class="form-control" 
+                            placeholder="e.g. Johnathan Miller"
+                            required
+                        >
+                    </div>
+
+                    <!-- Doctor Selection -->
+                    <div class="form-group">
+                        <label for="doctor-select" class="form-label">Attending Physician <span class="required">*</span></label>
+                        <select id="doctor-select" name="doctor_id" class="form-control" required>
+                            <option value="">-- Select a Doctor --</option>
+                            {% for doctor in doctors %}
+                                <option 
+                                    value="{{ doctor.id }}" 
+                                    data-start="{{ doctor.working_hours_start }}"
+                                    data-end="{{ doctor.working_hours_end }}"
+                                    data-specialty="{{ doctor.specialty }}"
+                                    data-room="{{ doctor.room_number }}"
+                                >
+                                    {{ doctor.name }} — {{ doctor.specialty }} ({{ doctor.room_number }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div id="doctor-schedule-hint" class="hint-text hidden">
+                            <!-- Dynamic working hours rendered by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Date & Time Row -->
+                    <div class="form-row">
+                        <div class="form-group col-half">
+                            <label for="appointment-date" class="form-label">Appointment Date <span class="required">*</span></label>
+                            <input 
+                                type="date" 
+                                id="appointment-date" 
+                                name="appointment_date" 
+                                class="form-control" 
+                                value="{{ today }}"
+                                min="{{ today }}"
+                                required
+                            >
+                        </div>
+                        <div class="form-group col-half">
+                            <label for="start-time" class="form-label">Preferred Start Time <span class="required">*</span></label>
+                            <input 
+                                type="time" 
+                                id="start-time" 
+                                name="start_time" 
+                                class="form-control" 
+                                step="900"
+                                value="10:00"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Duration & Reason Row -->
+                    <div class="form-row">
+                        <div class="form-group col-half">
+                            <label for="duration-select" class="form-label">Visit Duration <span class="required">*</span></label>
+                            <select id="duration-select" name="duration_minutes" class="form-control">
+                                <option value="15">15 Minutes (Brief Follow-up)</option>
+                                <option value="30" selected>30 Minutes (Standard Consultation)</option>
+                                <option value="45">45 Minutes (Detailed Examination)</option>
+                                <option value="60">60 Minutes (Comprehensive Review)</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-half">
+                            <label for="visit-reason" class="form-label">Purpose of Visit (Optional)</label>
+                            <input 
+                                type="text" 
+                                id="visit-reason" 
+                                name="reason" 
+                                class="form-control" 
+                                placeholder="e.g. Chest pain follow-up, general review"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-actions">
+                        <button type="submit" id="book-btn" class="btn btn-primary">
+                            <span class="btn-text">Confirm & Book Appointment</span>
+                            <span class="btn-spinner hidden"></span>
+                        </button>
+                        <button type="button" id="check-btn" class="btn btn-secondary">
+                            Check Availability
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Feedback & Notification Banners -->
+                <div id="feedback-container" class="feedback-area hidden">
+                    <!-- Dynamic Alert Message (Success or Error) -->
+                    <div id="feedback-alert" class="alert">
+                        <div id="feedback-message" class="alert-message"></div>
+                    </div>
+
+                    <!-- Alternative Suggestions Box -->
+                    <div id="alternatives-box" class="alternatives-card hidden">
+                        <div class="alternatives-header">
+                            <span class="icon">💡</span>
+                            <strong>Alternative Available Slots for this Doctor:</strong>
+                        </div>
+                        <p class="alternatives-sub">Click any available time slot below to automatically update your booking time:</p>
+                        <div id="alternatives-list" class="slots-chips-container">
+                            <!-- Slot chips generated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Today's Appointments & Hospital Overview -->
+            <div class="schedule-column">
+                <!-- Today's Schedule Card -->
+                <div class="card">
+                    <div class="card-header card-header-flex">
+                        <div>
+                            <h2 class="card-title">Today's Schedule Glance</h2>
+                            <p class="card-desc">{{ today }}</p>
+                        </div>
+                        <a href="/dashboard" class="link-btn">View All Records &rarr;</a>
+                    </div>
+
+                    <div id="today-appointments-list" class="appointments-feed">
+                        {% if recent_appointments %}
+                            {% for appt in recent_appointments %}
+                                <div class="feed-item" id="feed-item-{{ appt.id }}">
+                                    <div class="feed-time">
+                                        <span class="time-main">{{ appt.start_time }}</span>
+                                        <span class="time-end">to {{ appt.end_time }}</span>
+                                    </div>
+                                    <div class="feed-details">
+                                        <div class="feed-patient">{{ appt.patient_name }}</div>
+                                        <div class="feed-doctor">
+                                            {{ appt.doctor_name }} &bull; <span class="badge badge-light">{{ appt.doctor_room }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="feed-action">
+                                        <button 
+                                            class="btn-cancel-small" 
+                                            onclick="cancelAppointmentAction({{ appt.id }})" 
+                                            title="Cancel Appointment"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state" id="feed-empty-state">
+                                <div class="empty-icon">📅</div>
+                                <p class="empty-text">No appointments booked for today yet.</p>
+                                <p class="empty-sub">Fill out the booking form to schedule a slot.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Doctor Directory / Shift Hours Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Physician Shift Hours</h2>
+                        <p class="card-desc">Scheduled working hours per specialty</p>
+                    </div>
+                    <div class="doctors-shift-list">
+                        {% for doctor in doctors %}
+                            <div class="shift-row">
+                                <div class="shift-info">
+                                    <div class="shift-name">{{ doctor.name }}</div>
+                                    <div class="shift-specialty">{{ doctor.specialty }} &bull; {{ doctor.room_number }}</div>
+                                </div>
+                                <div class="shift-hours">
+                                    <span class="badge badge-info">{{ doctor.working_hours_start }} - {{ doctor.working_hours_end }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>CareSync &copy; 2026 &mdash; Smart Hospital Appointment Scheduling System &bull; Built with Flask &amp; SQLite</p>
+        </div>
+    </footer>
+
+    <!-- App JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

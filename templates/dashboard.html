@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareSync | Hospital Management Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand">
+                <span class="brand-icon">✚</span>
+                <span class="brand-text">CareSync</span>
+                <span class="brand-badge">Hospital OS</span>
+            </a>
+            <nav class="nav-links">
+                <a href="/" class="nav-link">Book Appointment</a>
+                <a href="/dashboard" class="nav-link active">Dashboard & Records</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div>
+                <h1 class="page-title">Hospital Appointment Dashboard</h1>
+                <p class="page-subtitle">Monitor bookings, manage patient schedules, and handle cancellations</p>
+            </div>
+            <a href="/" class="btn btn-primary">+ Book New Appointment</a>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon icon-blue">📋</div>
+                <div class="metric-content">
+                    <span class="metric-label">Total Appointments</span>
+                    <span class="metric-value" id="metric-total">{{ metrics.total }}</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon icon-green">✅</div>
+                <div class="metric-content">
+                    <span class="metric-label">Confirmed / Scheduled</span>
+                    <span class="metric-value text-green" id="metric-scheduled">{{ metrics.scheduled }}</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon icon-orange">📅</div>
+                <div class="metric-content">
+                    <span class="metric-label">Today's Visits</span>
+                    <span class="metric-value text-blue" id="metric-today">{{ metrics.today }}</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon icon-red">❌</div>
+                <div class="metric-content">
+                    <span class="metric-label">Cancelled Visits</span>
+                    <span class="metric-value text-muted" id="metric-cancelled">{{ metrics.cancelled }}</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon icon-purple">🩺</div>
+                <div class="metric-content">
+                    <span class="metric-label">Active Physicians</span>
+                    <span class="metric-value" id="metric-doctors">{{ metrics.doctors_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Banner Area -->
+        <div id="dashboard-alert" class="alert hidden">
+            <div id="dashboard-alert-msg" class="alert-message"></div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="card filter-card">
+            <div class="filter-header">
+                <h3 class="filter-title">Filter Appointments</h3>
+            </div>
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label for="filter-doctor" class="filter-label">Physician</label>
+                    <select id="filter-doctor" class="form-control">
+                        <option value="">All Physicians</option>
+                        {% for doctor in doctors %}
+                            <option value="{{ doctor.id }}">{{ doctor.name }} ({{ doctor.specialty }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label for="filter-date" class="filter-label">Date</label>
+                    <input type="date" id="filter-date" class="form-control">
+                </div>
+                <div class="filter-item">
+                    <label for="filter-status" class="filter-label">Status</label>
+                    <select id="filter-status" class="form-control">
+                        <option value="ALL">All Statuses</option>
+                        <option value="SCHEDULED">Scheduled Only</option>
+                        <option value="CANCELLED">Cancelled Only</option>
+                    </select>
+                </div>
+                <div class="filter-item filter-actions">
+                    <button id="apply-filters-btn" class="btn btn-secondary">Apply Filters</button>
+                    <button id="reset-filters-btn" class="btn btn-outline">Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointments Table Card -->
+        <div class="card table-card">
+            <div class="card-header card-header-flex">
+                <div>
+                    <h2 class="card-title">Appointment Records</h2>
+                    <p class="card-desc">Complete register of hospital consultations</p>
+                </div>
+                <div class="records-count">
+                    Showing <span id="records-count-num">{{ appointments|length }}</span> record(s)
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table" id="appointments-table">
+                    <thead>
+                        <tr>
+                            <th>Ref #</th>
+                            <th>Patient Name</th>
+                            <th>Physician</th>
+                            <th>Date</th>
+                            <th>Time Window</th>
+                            <th>Duration</th>
+                            <th>Room</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointments-tbody">
+                        {% if appointments %}
+                            {% for appt in appointments %}
+                                <tr id="row-{{ appt.id }}" class="{{ 'row-cancelled' if appt.status == 'CANCELLED' else '' }}">
+                                    <td class="font-mono">#{{ "%04d"|format(appt.id) }}</td>
+                                    <td>
+                                        <div class="patient-name-cell">{{ appt.patient_name }}</div>
+                                        {% if appt.reason %}
+                                            <div class="patient-reason-sub">{{ appt.reason }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="doctor-name-cell">{{ appt.doctor_name }}</div>
+                                        <div class="doctor-spec-sub">{{ appt.doctor_specialty }}</div>
+                                    </td>
+                                    <td>{{ appt.appointment_date }}</td>
+                                    <td>
+                                        <span class="time-range-badge">{{ appt.start_time }} &ndash; {{ appt.end_time }}</span>
+                                    </td>
+                                    <td>{{ appt.duration_minutes }}m</td>
+                                    <td><span class="badge badge-light">{{ appt.doctor_room }}</span></td>
+                                    <td>
+                                        {% if appt.status == 'SCHEDULED' %}
+                                            <span class="badge badge-success">Scheduled</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if appt.status == 'SCHEDULED' %}
+                                            <button 
+                                                class="btn-cancel-small" 
+                                                onclick="cancelAppointmentAction({{ appt.id }})"
+                                            >
+                                                Cancel
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted text-sm">&mdash;</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="no-records-row">
+                                <td colspan="9" class="text-center py-8">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">📂</div>
+                                        <p class="empty-text">No appointment records found.</p>
+                                        <a href="/" class="btn btn-secondary mt-2">Book an Appointment</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <p>CareSync &copy; 2026 &mdash; Smart Hospital Appointment Scheduling System &bull; Built with Flask &amp; SQLite</p>
+        </div>
+    </footer>
+
+    <!-- App JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
