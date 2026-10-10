@@ -77,7 +77,7 @@ def validate_appointment_input(patient_name: str, doctor_id: int, appointment_da
     # Validate duration
     try:
         duration_minutes = int(duration_minutes)
-        if duration_minutes <= 0 or duration_minutes > 240:
+        if duration_minutes < 0 or duration_minutes > 240:
             return False, "Duration must be between 10 and 240 minutes."
     except (ValueError, TypeError):
         return False, "Duration must be a valid number of minutes."
