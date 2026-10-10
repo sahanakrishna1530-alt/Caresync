@@ -79,9 +79,11 @@ def init_db(db_path=None):
         }
 
         new_columns = {
-            "consultation_type": "TEXT",
-            "price": "INTEGER",
-            "address": "TEXT"
+    "consultation_type": "TEXT",
+    "price": "INTEGER",
+    "address": "TEXT",
+    "is_emergency": "INTEGER NOT NULL DEFAULT 0"
+
         }
 
         for column, column_type in new_columns.items():
@@ -181,10 +183,11 @@ def get_appointments(
                 a.reason,
                 a.status,
                 a.created_at,
-                a.consultation_type,
-                a.price,
-                a.address,
-                d.name AS doctor_name,
+               a.consultation_type,
+               a.price,
+a.address,
+a.is_emergency,
+d.name AS doctor_name,
                 d.specialty AS doctor_specialty,
                 d.room_number AS doctor_room
             FROM appointments a
@@ -237,6 +240,7 @@ def get_appointment_by_id(appointment_id, db_path=None):
                 a.consultation_type,
                 a.price,
                 a.address,
+                a.is_emergency,
                 d.name AS doctor_name,
                 d.specialty AS doctor_specialty,
                 d.room_number AS doctor_room
@@ -251,6 +255,7 @@ def get_appointment_by_id(appointment_id, db_path=None):
         conn.close()
 
 
+
 def insert_appointment(
     patient_name,
     doctor_id,
@@ -262,7 +267,8 @@ def insert_appointment(
     db_path=None,
     consultation_type="in_person",
     price=None,
-    address=""
+    address="",
+    is_emergency=False
 ):
     """Insert an appointment and return its ID."""
     conn = get_db_connection(db_path)
@@ -283,9 +289,10 @@ def insert_appointment(
                 created_at,
                 consultation_type,
                 price,
-                address
+                address,
+                is_emergency
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED', ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED', ?, ?, ?, ?, ?)
         """, (
             patient_name,
             doctor_id,
@@ -297,7 +304,8 @@ def insert_appointment(
             now_str,
             consultation_type,
             price,
-            address
+            address,
+            1 if is_emergency else 0
         ))
 
         conn.commit()
@@ -305,6 +313,7 @@ def insert_appointment(
 
     finally:
         conn.close()
+
 
 
 def update_appointment_status(

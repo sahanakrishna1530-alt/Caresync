@@ -68,6 +68,13 @@ def booking():
         "home": "Home Visit",
     }
 
+    consultation_prices = {
+        "video": 299,
+        "phone": 199,
+        "in_person": 499,
+        "home": 699,
+    }
+
     consultation_type = request.args.get(
         "type",
         "in_person",
@@ -81,6 +88,8 @@ def booking():
         doctors=doctors,
         consultation_type=consultation_type,
         consultation_name=consultation_names[consultation_type],
+        consultation_price=consultation_prices[consultation_type],
+        consultation_prices=consultation_prices,
         today=date.today().isoformat(),
     )
 
@@ -182,6 +191,12 @@ def api_book_appointment():
         "in_person",
     )
     address = data.get("address", "").strip()
+    emergency_value = data.get("is_emergency", False)
+
+    is_emergency = (
+        str(emergency_value).strip().lower()
+        in ("true", "1", "yes", "on")
+    )
 
     result = book_appointment(
         patient_name=patient_name,
@@ -192,6 +207,7 @@ def api_book_appointment():
         reason=reason,
         consultation_type=consultation_type,
         address=address,
+ is_emergency=is_emergency,
     )
 
     if result["success"]:

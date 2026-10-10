@@ -373,6 +373,7 @@
                     </span>
                 </div>
 
+                
                 <div class="form-field full-width">
                     <label for="reason">Reason for visit</label>
                     <textarea id="reason"
@@ -381,6 +382,25 @@
                               maxlength="1000"
                               placeholder="Briefly describe the reason for your appointment"></textarea>
                 </div>
+
+                <div class="form-field full-width">
+                    <label>
+                        <input id="is-emergency"
+                               name="is_emergency"
+                               type="checkbox"
+                               value="true"
+                               style="width: auto; min-height: auto; margin-right: 8px;">
+                        This appointment request may need urgent attention
+                    </label>
+                    <span class="field-hint">
+                        This flag informs the scheduling system only and does
+                        not guarantee priority or immediate treatment. For a
+                        potentially life-threatening emergency, seek emergency
+                        medical care immediately instead of waiting for an
+                        appointment.
+                    </span>
+                </div>
+
 
                 <div class="booking-actions">
                     <button class="primary-button"
@@ -460,6 +480,8 @@
                 address: typeSelect.value === "home"
                     ? addressInput.value.trim()
                     : ""
+                                is_emergency:
+                    document.getElementById("is-emergency").checked
             };
         }
 
