@@ -107,17 +107,17 @@ def dashboard():
     metrics = {
         "total": len(appointments),
         "scheduled": sum(
-            1 for appointment in appointments
-            if appointment["status"] == "SCHEDULED"
+            1 for a in appointments
+            if a["status"] == "SCHEDULED"
         ),
         "cancelled": sum(
-            1 for appointment in appointments
-            if appointment["status"] == "CANCELLED"
+            1 for a in appointments
+            if a["status"] == "CANCELLED"
         ),
         "today": sum(
-            1 for appointment in appointments
-            if appointment["appointment_date"] == today_str
-            and appointment["status"] == "SCHEDULED"
+            1 for a in appointments
+            if a["appointment_date"] == today_str
+            and a["status"] == "SCHEDULED"
         ),
         "doctors_count": len(doctors),
     }
@@ -193,6 +193,12 @@ def api_book_appointment():
     )
     address = data.get("address", "").strip()
 
+    emergency_value = data.get("is_emergency", False)
+    is_emergency = (
+        str(emergency_value).strip().lower()
+        in ("true", "1", "yes", "on")
+    )
+
     result = book_appointment(
         patient_name=patient_name,
         doctor_id=doctor_id,
@@ -202,15 +208,18 @@ def api_book_appointment():
         reason=reason,
         consultation_type=consultation_type,
         address=address,
+        is_emergency=is_emergency,
     )
 
     if result["success"]:
         return jsonify(result), 201
 
-    if result.get("error_type") == "VALIDATION_ERROR":
+    error_type = result.get("error_type")
+
+    if error_type == "VALIDATION_ERROR":
         return jsonify(result), 400
 
-    if result.get("error_type") == "DATABASE_ERROR":
+    if error_type == "DATABASE_ERROR":
         return jsonify(result), 500
 
     return jsonify(result), 409
@@ -257,7 +266,10 @@ def api_reschedule_appointment(appointment_id):
     start_time = data.get("start_time")
     duration_minutes = data.get("duration_minutes", 30)
 
-    if not isinstance(appointment_date, str) or not appointment_date.strip():
+    if (
+        not isinstance(appointment_date, str)
+        or not appointment_date.strip()
+    ):
         return jsonify({
             "success": False,
             "error_type": "VALIDATION_ERROR",
@@ -353,17 +365,17 @@ def api_get_stats():
         "stats": {
             "total": len(appointments),
             "scheduled": sum(
-                1 for appointment in appointments
-                if appointment["status"] == "SCHEDULED"
+                1 for a in appointments
+                if a["status"] == "SCHEDULED"
             ),
             "cancelled": sum(
-                1 for appointment in appointments
-                if appointment["status"] == "CANCELLED"
+                1 for a in appointments
+                if a["status"] == "CANCELLED"
             ),
             "today": sum(
-                1 for appointment in appointments
-                if appointment["appointment_date"] == today_str
-                and appointment["status"] == "SCHEDULED"
+                1 for a in appointments
+                if a["appointment_date"] == today_str
+                and a["status"] == "SCHEDULED"
             ),
             "doctors": len(doctors),
         },
