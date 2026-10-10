@@ -1,19 +1,406 @@
 
-/**
- * CareSync - Vanilla JavaScript Application Logic
- * Handles legacy homepage booking, availability checks,
- * cancellation, and dashboard filtering.
- */
+"use strict";
+
+/* =========================================================
+   CareSync - Dashboard, Booking, Filters and Cancellation
+   ========================================================= */
+
+let activeDashboardFilter = "ALL";
 
 document.addEventListener("DOMContentLoaded", () => {
     initBookingForm();
     initDoctorSelector();
-    initDashboardFilters();
+    initDashboard();
 });
 
-/* ------------------------------------------------------------------
-   1. Legacy Homepage Booking & Availability
-   ------------------------------------------------------------------ */
+/* -------------------- Common helpers -------------------- */
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+function getLocalDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+async function readResponse(response) {
+    const data = await response.json();
+
+    if (!response.ok || data.success === false) {
+        throw new Error(
+            data.message || data.error || "The request could not be completed."
+        );
+    }
+
+    return data;
+}
+
+function showDashboardAlert(message, type = "success") {
+    const box = document.getElementById("dashboard-alert");
+    const messageElement = document.getElementById("dashboard-alert-msg");
+
+    if (!box || !messageElement) {
+        window.alert(message);
+        return;
+    }
+
+    box.className = `alert alert-${type}`;
+    messageElement.textContent = message;
+    box.classList.remove("hidden");
+}
+
+/* -------------------- Dashboard summary cards -------------------- */
+
+function initDashboard() {
+    const tableBody = document.getElementById("appointments-tbody");
+
+    // Do not initialize dashboard features on other pages.
+    if (!tableBody) return;
+
+    document.querySelectorAll("[data-dashboard-filter]").forEach(card => {
+        card.addEventListener("click", () => {
+            const filter = card.dataset.dashboardFilter || "ALL";
+
+            activeDashboardFilter = filter;
+
+            const doctor = document.getElementById("filter-doctor");
+            const date = document.getElementById("filter-date");
+            const status = document.getElementById("filter-status");
+
+            // Summary cards start a new view rather than retaining
+            // unrelated filters from a previous selection.
+            if (doctor) doctor.value = "";
+            if (date) date.value = "";
+            if (status) status.value = "ALL";
+
+            if (filter === "SCHEDULED" && status) {
+                status.value = "SCHEDULED";
+            } else if (filter === "CANCELLED" && status) {
+                status.value = "CANCELLED";
+            } else if (filter === "TODAY" && date) {
+                date.value = getLocalDate();
+            }
+
+            updateActiveCard(filter);
+            loadAppointments();
+        });
+    });
+
+    document.getElementById("apply-filters-btn")
+        ?.addEventListener("click", () => {
+            activeDashboardFilter = "CUSTOM";
+            updateActiveCard(null);
+            loadAppointments();
+        });
+
+    document.getElementById("reset-filters-btn")
+        ?.addEventListener("click", () => {
+            const doctor = document.getElementById("filter-doctor");
+            const date = document.getElementById("filter-date");
+            const status = document.getElementById("filter-status");
+
+            if (doctor) doctor.value = "";
+            if (date) date.value = "";
+            if (status) status.value = "ALL";
+
+            activeDashboardFilter = "ALL";
+            updateActiveCard("ALL");
+            loadAppointments();
+        });
+
+    // Make the first card the initial dashboard view.
+    updateActiveCard("ALL");
+}
+
+function updateActiveCard(filter) {
+    document.querySelectorAll("[data-dashboard-filter]").forEach(card => {
+        const selected =
+            filter !== null &&
+            card.dataset.dashboardFilter === filter;
+
+        card.classList.toggle("active", selected);
+        card.setAttribute("aria-pressed", String(selected));
+    });
+}
+
+/* -------------------- Load and filter appointments -------------------- */
+
+async function loadAppointments() {
+    const tbody = document.getElementById("appointments-tbody");
+
+    if (!tbody) return;
+
+    const doctorId = document.getElementById("filter-doctor")?.value || "";
+    const date = document.getElementById("filter-date")?.value || "";
+    const status = document.getElementById("filter-status")?.value || "ALL";
+
+    const params = new URLSearchParams();
+
+    if (doctorId) params.set("doctor_id", doctorId);
+    if (date) params.set("date", date);
+    if (status !== "ALL") params.set("status", status);
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="12" class="text-center">Loading appointments...</td>
+        </tr>`;
+
+    try {
+        const response = await fetch(`/api/appointments?${params.toString()}`);
+        const data = await readResponse(response);
+
+        // Accept either a raw JSON array or an object containing appointments.
+        let appointments = Array.isArray(data)
+            ? data
+            : (data.appointments || data.records || []);
+
+        if (!Array.isArray(appointments)) {
+            throw new Error("Unexpected appointment data returned by the server.");
+        }
+
+        // Apply the Today card's date filter even if the API ignores date.
+        if (activeDashboardFilter === "TODAY") {
+            const today = getLocalDate();
+
+            appointments = appointments.filter(appointment =>
+                String(appointment.appointment_date || "").slice(0, 10) === today
+            );
+        }
+
+        renderAppointmentsTable(appointments);
+    } catch (error) {
+        console.error("Loading appointments failed:", error);
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="12" class="text-center">
+                    Unable to load appointments. Please try again.
+                </td>
+            </tr>`;
+
+        showDashboardAlert(error.message, "alert-error");
+    }
+}
+
+/* -------------------- Render the 12-column table -------------------- */
+
+function renderAppointmentsTable(appointments) {
+    const tbody = document.getElementById("appointments-tbody");
+    const count = document.getElementById("records-count-num");
+
+    if (!tbody) return;
+
+    if (count) count.textContent = String(appointments.length);
+
+    if (appointments.length === 0) {
+        tbody.innerHTML = `
+            <tr id="no-records-row">
+                <td colspan="12" class="text-center py-8">
+                    <div class="empty-state">
+                        <div class="empty-icon">No records</div>
+                        <p class="empty-text">
+                            No appointments match the selected filters.
+                        </p>
+                        <a href="/book" class="btn btn-secondary mt-2">
+                            Book an Appointment
+                        </a>
+                    </div>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    const consultationNames = {
+        video: "Video Visit",
+        phone: "Phone Call",
+        in_person: "In Person",
+        home: "Home Visit"
+    };
+
+    tbody.innerHTML = appointments.map(appointment => {
+        const id = Number(appointment.id);
+
+        if (!Number.isInteger(id) || id < 1) return "";
+
+        const status = String(appointment.status || "").toUpperCase();
+        const isScheduled = status === "SCHEDULED";
+        const isHomeVisit = appointment.consultation_type === "home";
+
+        const consultation = consultationNames[appointment.consultation_type];
+
+        const price = appointment.price !== null &&
+                      appointment.price !== undefined &&
+                      appointment.price !== ""
+            ? `₹${escapeHtml(appointment.price)}`
+            : "—";
+
+        const address = isHomeVisit
+            ? escapeHtml(appointment.address || "Not provided")
+            : "—";
+
+        return `
+            <tr id="row-${id}" class="${isScheduled ? "" : "row-cancelled"}">
+                <td class="font-mono">#${String(id).padStart(4, "0")}</td>
+
+                <td>
+                    <div class="patient-name-cell">
+                        ${escapeHtml(appointment.patient_name || "—")}
+                    </div>
+                    ${appointment.reason
+                        ? `<div class="patient-reason-sub">${escapeHtml(appointment.reason)}</div>`
+                        : ""}
+                </td>
+
+                <td>
+                    <div class="doctor-name-cell">
+                        ${escapeHtml(appointment.doctor_name || "—")}
+                    </div>
+                    <div class="doctor-spec-sub">
+                        ${escapeHtml(appointment.doctor_specialty || "")}
+                    </div>
+                </td>
+
+                <td>${escapeHtml(appointment.appointment_date || "—")}</td>
+
+                <td>
+                    <span class="time-range-badge">
+                        ${escapeHtml(appointment.start_time || "—")}
+                        &ndash;
+                        ${escapeHtml(appointment.end_time || "—")}
+                    </span>
+                </td>
+
+                <td>${escapeHtml(appointment.duration_minutes ?? "—")} min</td>
+
+                <td class="consultation-cell">
+                    ${consultation
+                        ? `<span class="consultation-type">${escapeHtml(consultation)}</span>`
+                        : "—"}
+                </td>
+
+                <td><div class="consultation-price">${price}</div></td>
+
+                <td><div class="visit-address">${address}</div></td>
+
+                <td>
+                    <span class="badge badge-light">
+                        ${escapeHtml(appointment.doctor_room || "—")}
+                    </span>
+                </td>
+
+                <td>
+                    <span class="badge ${isScheduled ? "badge-success" : "badge-danger"}">
+                        ${isScheduled ? "Scheduled" : "Cancelled"}
+                    </span>
+                </td>
+
+                <td>
+                    ${isScheduled
+                        ? `<button type="button"
+                                   class="btn-cancel-small"
+                                   data-cancel-id="${id}">Cancel</button>`
+                        : '<span class="text-muted text-sm">—</span>'}
+                </td>
+            </tr>`;
+    }).join("");
+
+    // Event delegation also works after the table is redrawn.
+    tbody.querySelectorAll("[data-cancel-id]").forEach(button => {
+        button.addEventListener("click", () => {
+            cancelAppointmentAction(button.dataset.cancelId);
+        });
+    });
+}
+
+/* -------------------- Cancel an appointment -------------------- */
+
+async function cancelAppointmentAction(appointmentId) {
+    const id = Number(appointmentId);
+
+    if (!Number.isInteger(id) || id < 1) {
+        showDashboardAlert("Invalid appointment ID.", "alert-error");
+        return;
+    }
+
+    if (!window.confirm(
+        `Are you sure you want to cancel appointment #${String(id).padStart(4, "0")}?`
+    )) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/appointments/${id}/cancel`, {
+            method: "POST"
+        });
+
+        const data = await readResponse(response);
+
+        showDashboardAlert(
+            data.message || "Appointment cancelled successfully.",
+            "alert-success"
+        );
+
+        // Refresh the records and statistics from the server so that
+        // filters and counts do not become inconsistent.
+        await loadAppointments();
+        await refreshDashboardMetrics();
+    } catch (error) {
+        console.error("Cancellation failed:", error);
+        showDashboardAlert(error.message || "Cancellation failed.", "alert-error");
+    }
+}
+
+/* -------------------- Refresh dashboard statistics -------------------- */
+
+async function refreshDashboardMetrics() {
+    try {
+        const response = await fetch("/api/stats");
+        const data = await readResponse(response);
+
+        // Support stats returned directly or inside a stats object.
+        const stats = data.stats || data;
+
+        const mappings = {
+            "metric-total": stats.total,
+            "metric-scheduled": stats.scheduled,
+            "metric-today": stats.today,
+            "metric-cancelled": stats.cancelled,
+            "metric-doctors": stats.doctors_count
+        };
+
+        Object.entries(mappings).forEach(([elementId, value]) => {
+            const element = document.getElementById(elementId);
+
+            if (element && value !== undefined) {
+                element.textContent = String(value);
+            }
+        });
+    } catch (error) {
+        // Statistics refresh should not undo a successful cancellation.
+        console.error("Statistics refresh failed:", error);
+    }
+}
+
+/* -------------------- Legacy booking form support -------------------- */
+
+function initBookingForm() {
+    const form = document.getElementById("appointment-form");
+    const checkButton = document.getElementById("check-btn");
+
+    form?.addEventListener("submit", handleBookingSubmit);
+    checkButton?.addEventListener("click", handleCheckAvailability);
+}
 
 function initDoctorSelector() {
     const doctorSelect = document.getElementById("doctor-select");
@@ -42,50 +429,20 @@ function initDoctorSelector() {
     });
 }
 
-function initBookingForm() {
-    const form = document.getElementById("appointment-form");
-    const checkBtn = document.getElementById("check-btn");
-
-    if (form) {
-        form.addEventListener("submit", handleBookingSubmit);
-    }
-
-    if (checkBtn) {
-        checkBtn.addEventListener("click", handleCheckAvailability);
-    }
-}
-
 async function handleBookingSubmit(event) {
     event.preventDefault();
 
-    const form = event.target;
-    const patientInput = document.getElementById("patient-name");
-    const doctorInput = document.getElementById("doctor-select");
-    const dateInput = document.getElementById("appointment-date");
-    const timeInput = document.getElementById("start-time");
-    const durationInput = document.getElementById("duration-select");
-    const reasonInput = document.getElementById("visit-reason");
+    const form = event.currentTarget;
 
-    if (!patientInput || !doctorInput || !dateInput ||
-        !timeInput || !durationInput || !reasonInput) {
-        showFeedback("The booking form is incomplete.", "danger");
-        return;
-    }
+    const patientName = document.getElementById("patient-name")?.value.trim();
+    const doctorId = document.getElementById("doctor-select")?.value;
+    const date = document.getElementById("appointment-date")?.value;
+    const time = document.getElementById("start-time")?.value;
+    const duration = document.getElementById("duration-select")?.value;
+    const reason = document.getElementById("visit-reason")?.value.trim() || "";
 
-    const patientName = patientInput.value.trim();
-    const doctorId = doctorInput.value;
-    const appointmentDate = dateInput.value;
-    const startTime = timeInput.value;
-    const duration = durationInput.value;
-    const reason = reasonInput.value.trim();
-
-    if (!patientName) {
-        showFeedback("Please enter the patient's full name.", "danger");
-        return;
-    }
-
-    if (!doctorId || !appointmentDate || !startTime) {
-        showFeedback("Please select a doctor, date, and start time.", "danger");
+    if (!patientName || !doctorId || !date || !time || !duration) {
+        showFeedback("Please complete all required booking fields.", "danger");
         return;
     }
 
@@ -98,62 +455,43 @@ async function handleBookingSubmit(event) {
             body: JSON.stringify({
                 patient_name: patientName,
                 doctor_id: Number(doctorId),
-                appointment_date: appointmentDate,
-                start_time: startTime,
+                appointment_date: date,
+                start_time: time,
                 duration_minutes: Number(duration),
-                reason: reason,
+                reason,
                 consultation_type: "in_person",
                 address: ""
             })
         });
 
-        const data = await response.json();
+        const data = await readResponse(response);
 
-        if (response.ok && data.success) {
-            showFeedback(
-                `${data.message || "Appointment booked."} Reference #${String(data.appointment.id).padStart(4, "0")}`,
-                "success"
-            );
+        showFeedback(
+            data.message || "Appointment booked successfully.",
+            "success"
+        );
 
-            hideAlternatives();
-            form.reset();
+        hideAlternatives();
+        form.reset();
 
+        if (data.appointment) {
             addAppointmentToFeedIfToday(data.appointment);
-        } else {
-            showFeedback(
-                data.message || data.error || "Unable to schedule appointment.",
-                "danger"
-            );
-
-            if (data.alternatives?.length) {
-                displayAlternatives(data.alternatives);
-            } else {
-                hideAlternatives();
-            }
         }
     } catch (error) {
-        console.error("Booking error:", error);
-        showFeedback("Unable to connect to the scheduling service.", "danger");
+        showFeedback(error.message || "Unable to book appointment.", "danger");
     } finally {
         setLoadingState(false);
     }
 }
 
 async function handleCheckAvailability() {
-    const doctorInput = document.getElementById("doctor-select");
-    const dateInput = document.getElementById("appointment-date");
-    const timeInput = document.getElementById("start-time");
-    const durationInput = document.getElementById("duration-select");
+    const doctorId = document.getElementById("doctor-select")?.value;
+    const date = document.getElementById("appointment-date")?.value;
+    const time = document.getElementById("start-time")?.value;
+    const duration = document.getElementById("duration-select")?.value;
 
-    if (!doctorInput || !dateInput || !timeInput || !durationInput) return;
-
-    const doctorId = doctorInput.value;
-    const date = dateInput.value;
-    const time = timeInput.value;
-    const duration = durationInput.value;
-
-    if (!doctorId || !date || !time) {
-        showFeedback("Please choose a doctor, date, and time.", "warning");
+    if (!doctorId || !date || !time || !duration) {
+        showFeedback("Please select a doctor, date, time, and duration.", "warning");
         return;
     }
 
@@ -166,16 +504,13 @@ async function handleCheckAvailability() {
         });
 
         const response = await fetch(`/api/check-availability?${params}`);
-        const data = await response.json();
+        const data = await readResponse(response);
 
-        if (response.ok && data.available) {
+        if (data.available) {
             showFeedback(data.message || "This time is available.", "success");
             hideAlternatives();
         } else {
-            showFeedback(
-                data.message || "This time is not available.",
-                "danger"
-            );
+            showFeedback(data.message || "This time is unavailable.", "danger");
 
             if (data.alternatives?.length) {
                 displayAlternatives(data.alternatives);
@@ -184,8 +519,7 @@ async function handleCheckAvailability() {
             }
         }
     } catch (error) {
-        console.error("Availability error:", error);
-        showFeedback("Unable to check availability. Please try again.", "danger");
+        showFeedback(error.message || "Unable to check availability.", "danger");
     }
 }
 
@@ -201,7 +535,7 @@ function displayAlternatives(alternatives) {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "slot-chip";
-        button.textContent = `🕒 ${slot.display || slot.start_time || "Available slot"}`;
+        button.textContent = slot.display || slot.start_time || "Available slot";
 
         button.addEventListener("click", () => {
             const timeInput = document.getElementById("start-time");
@@ -209,7 +543,7 @@ function displayAlternatives(alternatives) {
             if (timeInput && slot.start_time) {
                 timeInput.value = slot.start_time;
                 showFeedback(
-                    `Selected suggested time: ${slot.start_time}. Confirm the booking to continue.`,
+                    `Selected ${slot.start_time}. Submit the form to book it.`,
                     "warning"
                 );
             }
@@ -230,7 +564,10 @@ function showFeedback(message, type = "info") {
     const alertBox = document.getElementById("feedback-alert");
     const messageElement = document.getElementById("feedback-message");
 
-    if (!container || !alertBox || !messageElement) return;
+    if (!container || !alertBox || !messageElement) {
+        window.alert(message);
+        return;
+    }
 
     container.classList.remove("hidden");
     alertBox.className = `alert alert-${type}`;
@@ -257,32 +594,18 @@ function setLoadingState(isLoading) {
 }
 
 function addAppointmentToFeedIfToday(appointment) {
-    if (!appointment) return;
-
     const feed = document.getElementById("today-appointments-list");
-    if (!feed) return;
+    if (!feed || !appointment) return;
 
-    const today = new Date().toLocaleDateString("en-CA");
-    if (appointment.appointment_date !== today) return;
+    if (String(appointment.appointment_date || "").slice(0, 10) !== getLocalDate()) {
+        return;
+    }
 
     document.getElementById("feed-empty-state")?.remove();
 
     const item = document.createElement("div");
     item.className = "feed-item";
     item.id = `feed-item-${appointment.id}`;
-
-    const time = document.createElement("div");
-    time.className = "feed-time";
-
-    const start = document.createElement("span");
-    start.className = "time-main";
-    start.textContent = appointment.start_time || "";
-
-    const end = document.createElement("span");
-    end.className = "time-end";
-    end.textContent = `to ${appointment.end_time || ""}`;
-
-    time.append(start, end);
 
     const details = document.createElement("div");
     details.className = "feed-details";
@@ -298,279 +621,11 @@ function addAppointmentToFeedIfToday(appointment) {
 
     details.append(patient, doctor);
 
-    const action = document.createElement("div");
-    action.className = "feed-action";
+    const time = document.createElement("div");
+    time.className = "feed-time";
+    time.textContent =
+        `${appointment.start_time || ""} – ${appointment.end_time || ""}`;
 
-    const cancelButton = document.createElement("button");
-    cancelButton.type = "button";
-    cancelButton.className = "btn-cancel-small";
-    cancelButton.textContent = "Cancel";
-    cancelButton.addEventListener("click", () => {
-        cancelAppointmentAction(appointment.id);
-    });
-
-    action.appendChild(cancelButton);
-    item.append(time, details, action);
+    item.append(time, details);
     feed.prepend(item);
-}
-
-/* ------------------------------------------------------------------
-   2. Appointment Cancellation
-   ------------------------------------------------------------------ */
-
-async function cancelAppointmentAction(appointmentId) {
-    if (!confirm(
-        `Are you sure you want to cancel appointment #${String(appointmentId).padStart(4, "0")}?`
-    )) {
-        return;
-    }
-
-    try {
-        const response = await fetch(
-            `/api/appointments/${encodeURIComponent(appointmentId)}/cancel`,
-            { method: "POST" }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            alert(data.message || data.error || "Failed to cancel appointment.");
-            return;
-        }
-
-        const row = document.getElementById(`row-${appointmentId}`);
-
-        if (row) {
-            row.classList.add("row-cancelled");
-
-            // Updated dashboard columns:
-            // Status is column 11 (index 10); Actions is column 12 (index 11).
-            if (row.cells[10]) {
-                row.cells[10].innerHTML =
-                    '<span class="badge badge-danger">Cancelled</span>';
-            }
-
-            if (row.cells[11]) {
-                row.cells[11].textContent = "—";
-            }
-
-            updateDashboardMetricsAfterCancel();
-        }
-
-        const feedItem = document.getElementById(`feed-item-${appointmentId}`);
-
-        if (feedItem) {
-            feedItem.style.opacity = "0.55";
-            feedItem.style.pointerEvents = "none";
-
-            const action = feedItem.querySelector(".feed-action");
-            if (action) {
-                action.textContent = "Cancelled";
-            }
-        }
-
-        const alertBox = document.getElementById("dashboard-alert");
-        const alertMessage = document.getElementById("dashboard-alert-msg");
-
-        if (alertBox && alertMessage) {
-            alertBox.className = "alert alert-success";
-            alertMessage.textContent = data.message || "Appointment cancelled.";
-            alertBox.classList.remove("hidden");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-        } else {
-            alert(data.message || "Appointment cancelled.");
-        }
-    } catch (error) {
-        console.error("Cancellation error:", error);
-        alert("Unable to communicate with the server. Please try again.");
-    }
-}
-
-function updateDashboardMetricsAfterCancel() {
-    const scheduled = document.getElementById("metric-scheduled");
-    const cancelled = document.getElementById("metric-cancelled");
-
-    if (scheduled) {
-        const value = Number.parseInt(scheduled.textContent, 10) || 0;
-        scheduled.textContent = String(Math.max(0, value - 1));
-    }
-
-    if (cancelled) {
-        const value = Number.parseInt(cancelled.textContent, 10) || 0;
-        cancelled.textContent = String(value + 1);
-    }
-}
-
-/* ------------------------------------------------------------------
-   3. Dashboard Filters
-   ------------------------------------------------------------------ */
-
-function initDashboardFilters() {
-    const applyButton = document.getElementById("apply-filters-btn");
-    const resetButton = document.getElementById("reset-filters-btn");
-
-    applyButton?.addEventListener("click", fetchAndRenderFilteredAppointments);
-
-    resetButton?.addEventListener("click", () => {
-        const doctor = document.getElementById("filter-doctor");
-        const date = document.getElementById("filter-date");
-        const status = document.getElementById("filter-status");
-
-        if (doctor) doctor.value = "";
-        if (date) date.value = "";
-        if (status) status.value = "ALL";
-
-        fetchAndRenderFilteredAppointments();
-    });
-}
-
-async function fetchAndRenderFilteredAppointments() {
-    const doctorId = document.getElementById("filter-doctor")?.value || "";
-    const date = document.getElementById("filter-date")?.value || "";
-    const status = document.getElementById("filter-status")?.value || "ALL";
-
-    const params = new URLSearchParams();
-
-    if (doctorId) params.set("doctor_id", doctorId);
-    if (date) params.set("date", date);
-    if (status && status !== "ALL") params.set("status", status);
-
-    try {
-        const response = await fetch(`/api/appointments?${params.toString()}`);
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            showDashboardAlert(
-                data.message || "Unable to load filtered appointments.",
-                "danger"
-            );
-            return;
-        }
-
-        renderAppointmentsTable(data.appointments || []);
-    } catch (error) {
-        console.error("Filtering error:", error);
-        showDashboardAlert("Unable to load appointments. Please try again.", "danger");
-    }
-}
-
-function renderAppointmentsTable(appointments) {
-    const tbody = document.getElementById("appointments-tbody");
-    const count = document.getElementById("records-count-num");
-
-    if (!tbody) return;
-
-    if (count) {
-        count.textContent = String(appointments.length);
-    }
-
-    if (appointments.length === 0) {
-        tbody.innerHTML = `
-            <tr id="no-records-row">
-                <td colspan="12" class="text-center py-8">
-                    <div class="empty-state">
-                        <div class="empty-icon">📂</div>
-                        <p class="empty-text">No appointment records match your filters.</p>
-                        <a href="/book" class="btn btn-secondary mt-2">Book an Appointment</a>
-                    </div>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    tbody.innerHTML = appointments.map(appt => {
-        const id = escapeHtml(String(appt.id ?? ""));
-        const cancelled = appt.status === "CANCELLED";
-
-        const statusBadge = cancelled
-            ? '<span class="badge badge-danger">Cancelled</span>'
-            : '<span class="badge badge-success">Scheduled</span>';
-
-        const action = cancelled
-            ? '<span class="text-muted text-sm">—</span>'
-            : `<button type="button" class="btn-cancel-small" data-cancel-id="${id}">Cancel</button>`;
-
-        const consultationLabels = {
-            video: "Video Visit",
-            phone: "Phone Call",
-            in_person: "In Person",
-            home: "Home Visit"
-        };
-
-        const consultationType = consultationLabels[appt.consultation_type];
-        const consultationHtml = consultationType
-            ? `<span class="consultation-type">${escapeHtml(consultationType)}</span>`
-            : '<span class="text-muted">—</span>';
-
-        const priceHtml = appt.price !== null &&
-                          appt.price !== undefined &&
-                          appt.price !== ""
-            ? `<div class="consultation-price">₹${escapeHtml(String(appt.price))}</div>`
-            : '<span class="text-muted">—</span>';
-
-        const addressHtml = appt.consultation_type === "home"
-            ? (appt.address
-                ? `<div class="visit-address">${escapeHtml(appt.address)}</div>`
-                : '<span class="text-muted">Not provided</span>')
-            : '<span class="text-muted">—</span>';
-
-        return `
-            <tr id="row-${id}" class="${cancelled ? "row-cancelled" : ""}">
-                <td class="font-mono">#${String(appt.id).padStart(4, "0")}</td>
-                <td>
-                    <div class="patient-name-cell">${escapeHtml(appt.patient_name)}</div>
-                    ${appt.reason
-                        ? `<div class="patient-reason-sub">${escapeHtml(appt.reason)}</div>`
-                        : ""}
-                </td>
-                <td>
-                    <div class="doctor-name-cell">${escapeHtml(appt.doctor_name)}</div>
-                    <div class="doctor-spec-sub">${escapeHtml(appt.doctor_specialty)}</div>
-                </td>
-                <td>${escapeHtml(appt.appointment_date)}</td>
-                <td>
-                    <span class="time-range-badge">
-                        ${escapeHtml(appt.start_time)} &ndash; ${escapeHtml(appt.end_time)}
-                    </span>
-                </td>
-                <td>${escapeHtml(String(appt.duration_minutes ?? ""))} min</td>
-                <td class="consultation-cell">${consultationHtml}</td>
-                <td>${priceHtml}</td>
-                <td>${addressHtml}</td>
-                <td><span class="badge badge-light">${escapeHtml(appt.doctor_room || "—")}</span></td>
-                <td>${statusBadge}</td>
-                <td>${action}</td>
-            </tr>
-        `;
-    }).join("");
-
-    // Attach cancellation handlers to the newly rendered rows.
-    tbody.querySelectorAll("[data-cancel-id]").forEach(button => {
-        button.addEventListener("click", () => {
-            cancelAppointmentAction(button.dataset.cancelId);
-        });
-    });
-}
-
-function showDashboardAlert(message, type = "info") {
-    const box = document.getElementById("dashboard-alert");
-    const text = document.getElementById("dashboard-alert-msg");
-
-    if (!box || !text) return;
-
-    box.className = `alert alert-${type}`;
-    text.textContent = message;
-    box.classList.remove("hidden");
-}
-
-function escapeHtml(value) {
-    if (value === null || value === undefined) return "";
-
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
 }
