@@ -6,18 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CareSync | Hospital Management Dashboard</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
-
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        .consultation-cell {
-            min-width: 130px;
-        }
+        .consultation-cell { min-width: 130px; }
 
         .consultation-type {
             display: inline-block;
@@ -44,13 +39,8 @@
             overflow-wrap: anywhere;
         }
 
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        #appointments-table {
-            min-width: 1250px;
-        }
+        .table-responsive { overflow-x: auto; }
+        #appointments-table { min-width: 1250px; }
 
         .dashboard-note {
             margin: 0 0 18px;
@@ -59,17 +49,43 @@
             line-height: 1.6;
         }
 
+        .metric-card-clickable {
+            width: 100%;
+            font: inherit;
+            color: inherit;
+            text-align: left;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: transform 0.18s ease, box-shadow 0.18s ease,
+                        border-color 0.18s ease;
+        }
+
+        .metric-card-clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(20, 50, 70, 0.10);
+            border-color: #9ccfd4;
+        }
+
+        .metric-card-clickable:focus-visible {
+            outline: 3px solid #087f8c;
+            outline-offset: 3px;
+        }
+
+        .metric-card-clickable.active {
+            border-color: #087f8c;
+            box-shadow: 0 0 0 2px rgba(8, 127, 140, 0.12);
+        }
+
+        .metric-card-clickable .metric-content { pointer-events: none; }
+        .metric-card-clickable .metric-icon { pointer-events: none; }
+
         @media (max-width: 768px) {
-            .dashboard-header {
-                gap: 16px;
-                flex-wrap: wrap;
-            }
+            .dashboard-header { gap: 16px; flex-wrap: wrap; }
         }
     </style>
 </head>
 
 <body>
-    <!-- Navigation -->
     <header class="navbar">
         <div class="nav-container">
             <a href="/" class="brand">
@@ -81,88 +97,73 @@
             <nav class="nav-links">
                 <a href="/" class="nav-link">Home</a>
                 <a href="/book" class="nav-link">Book Appointment</a>
-                <a href="/dashboard" class="nav-link active">
-                    Dashboard &amp; Records
-                </a>
+                <a href="/dashboard" class="nav-link active">Dashboard &amp; Records</a>
             </nav>
         </div>
     </header>
 
     <main class="main-container">
-        <!-- Dashboard heading -->
         <div class="dashboard-header">
             <div>
                 <h1 class="page-title">Hospital Appointment Dashboard</h1>
                 <p class="page-subtitle">
-                    Monitor bookings, review consultation details, and manage
-                    patient schedules.
+                    Monitor bookings, review consultation details, and manage patient schedules.
                 </p>
             </div>
-
-            <a href="/book" class="btn btn-primary">
-                + Book New Appointment
-            </a>
+            <a href="/book" class="btn btn-primary">+ Book New Appointment</a>
         </div>
 
-        <!-- Summary metrics -->
+        <!-- Clickable appointment summary cards -->
         <div class="metrics-grid">
-            <div class="metric-card">
+            <button type="button" class="metric-card metric-card-clickable active"
+                    data-dashboard-filter="ALL" aria-pressed="true">
                 <div class="metric-icon icon-blue">📋</div>
                 <div class="metric-content">
                     <span class="metric-label">Total Appointments</span>
-                    <span class="metric-value" id="metric-total">
-                        {{ metrics.total }}
-                    </span>
+                    <span class="metric-value" id="metric-total">{{ metrics.total }}</span>
                 </div>
-            </div>
+            </button>
 
-            <div class="metric-card">
+            <button type="button" class="metric-card metric-card-clickable"
+                    data-dashboard-filter="SCHEDULED" aria-pressed="false">
                 <div class="metric-icon icon-green">✓</div>
                 <div class="metric-content">
                     <span class="metric-label">Confirmed / Scheduled</span>
-                    <span class="metric-value text-green" id="metric-scheduled">
-                        {{ metrics.scheduled }}
-                    </span>
+                    <span class="metric-value text-green" id="metric-scheduled">{{ metrics.scheduled }}</span>
                 </div>
-            </div>
+            </button>
 
-            <div class="metric-card">
+            <button type="button" class="metric-card metric-card-clickable"
+                    data-dashboard-filter="TODAY" aria-pressed="false">
                 <div class="metric-icon icon-orange">📅</div>
                 <div class="metric-content">
                     <span class="metric-label">Today's Visits</span>
-                    <span class="metric-value text-blue" id="metric-today">
-                        {{ metrics.today }}
-                    </span>
+                    <span class="metric-value text-blue" id="metric-today">{{ metrics.today }}</span>
                 </div>
-            </div>
+            </button>
 
-            <div class="metric-card">
+            <button type="button" class="metric-card metric-card-clickable"
+                    data-dashboard-filter="CANCELLED" aria-pressed="false">
                 <div class="metric-icon icon-red">×</div>
                 <div class="metric-content">
                     <span class="metric-label">Cancelled Visits</span>
-                    <span class="metric-value text-muted" id="metric-cancelled">
-                        {{ metrics.cancelled }}
-                    </span>
+                    <span class="metric-value text-muted" id="metric-cancelled">{{ metrics.cancelled }}</span>
                 </div>
-            </div>
+            </button>
 
             <div class="metric-card">
                 <div class="metric-icon icon-purple">🩺</div>
                 <div class="metric-content">
                     <span class="metric-label">Active Physicians</span>
-                    <span class="metric-value" id="metric-doctors">
-                        {{ metrics.doctors_count }}
-                    </span>
+                    <span class="metric-value" id="metric-doctors">{{ metrics.doctors_count }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- Alert area -->
         <div id="dashboard-alert" class="alert hidden" role="status">
             <div id="dashboard-alert-msg" class="alert-message"></div>
         </div>
 
-        <!-- Filters -->
         <section class="card filter-card">
             <div class="filter-header">
                 <h2 class="filter-title">Filter Appointments</h2>
@@ -170,16 +171,11 @@
 
             <div class="filter-grid">
                 <div class="filter-item">
-                    <label for="filter-doctor" class="filter-label">
-                        Physician
-                    </label>
-
+                    <label for="filter-doctor" class="filter-label">Physician</label>
                     <select id="filter-doctor" class="form-control">
                         <option value="">All Physicians</option>
                         {% for doctor in doctors %}
-                        <option value="{{ doctor.id }}">
-                            {{ doctor.name }} ({{ doctor.specialty }})
-                        </option>
+                        <option value="{{ doctor.id }}">{{ doctor.name }} ({{ doctor.specialty }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -199,43 +195,29 @@
                 </div>
 
                 <div class="filter-item filter-actions">
-                    <button type="button"
-                            id="apply-filters-btn"
-                            class="btn btn-secondary">
+                    <button type="button" id="apply-filters-btn" class="btn btn-secondary">
                         Apply Filters
                     </button>
-
-                    <button type="button"
-                            id="reset-filters-btn"
-                            class="btn btn-outline">
+                    <button type="button" id="reset-filters-btn" class="btn btn-outline">
                         Reset
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- Appointment records -->
         <section class="card table-card">
             <div class="card-header card-header-flex">
                 <div>
                     <h2 class="card-title">Appointment Records</h2>
-                    <p class="card-desc">
-                        Patient, consultation, scheduling, and payment details
-                    </p>
+                    <p class="card-desc">Patient, consultation, scheduling, and payment details</p>
                 </div>
-
                 <div class="records-count">
-                    Showing
-                    <span id="records-count-num">
-                        {{ appointments|length }}
-                    </span>
-                    record(s)
+                    Showing <span id="records-count-num">{{ appointments|length }}</span> record(s)
                 </div>
             </div>
 
             <p class="dashboard-note">
-                Fees are displayed in Indian rupees. Older records without
-                consultation details will show as unavailable.
+                Fees are displayed in Indian rupees. Older records without consultation details will show as unavailable.
             </p>
 
             <div class="table-responsive">
@@ -258,144 +240,97 @@
                     </thead>
 
                     <tbody id="appointments-tbody">
-                        {% if appointments %}
-                            {% for appt in appointments %}
-                                <tr id="row-{{ appt.id }}"
-                                    class="{{ 'row-cancelled' if appt.status == 'CANCELLED' else '' }}">
+                    {% if appointments %}
+                        {% for appt in appointments %}
+                        <tr id="row-{{ appt.id }}"
+                            class="{{ 'row-cancelled' if appt.status == 'CANCELLED' else '' }}">
+                            <td class="font-mono">#{{ "%04d"|format(appt.id) }}</td>
 
-                                    <td class="font-mono">
-                                        #{{ "%04d"|format(appt.id) }}
-                                    </td>
+                            <td>
+                                <div class="patient-name-cell">{{ appt.patient_name }}</div>
+                                {% if appt.reason %}
+                                <div class="patient-reason-sub">{{ appt.reason }}</div>
+                                {% endif %}
+                            </td>
 
-                                    <td>
-                                        <div class="patient-name-cell">
-                                            {{ appt.patient_name }}
-                                        </div>
+                            <td>
+                                <div class="doctor-name-cell">{{ appt.doctor_name }}</div>
+                                <div class="doctor-spec-sub">{{ appt.doctor_specialty }}</div>
+                            </td>
 
-                                        {% if appt.reason %}
-                                        <div class="patient-reason-sub">
-                                            {{ appt.reason }}
-                                        </div>
-                                        {% endif %}
-                                    </td>
+                            <td>{{ appt.appointment_date }}</td>
+                            <td>
+                                <span class="time-range-badge">
+                                    {{ appt.start_time }} &ndash; {{ appt.end_time }}
+                                </span>
+                            </td>
+                            <td>{{ appt.duration_minutes }} min</td>
 
-                                    <td>
-                                        <div class="doctor-name-cell">
-                                            {{ appt.doctor_name }}
-                                        </div>
-                                        <div class="doctor-spec-sub">
-                                            {{ appt.doctor_specialty }}
-                                        </div>
-                                    </td>
+                            <td class="consultation-cell">
+                                {% if appt.consultation_type == 'video' %}
+                                    <span class="consultation-type">Video Visit</span>
+                                {% elif appt.consultation_type == 'phone' %}
+                                    <span class="consultation-type">Phone Call</span>
+                                {% elif appt.consultation_type == 'in_person' %}
+                                    <span class="consultation-type">In Person</span>
+                                {% elif appt.consultation_type == 'home' %}
+                                    <span class="consultation-type">Home Visit</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
 
-                                    <td>{{ appt.appointment_date }}</td>
+                            <td>
+                                {% if appt.price is not none %}
+                                    <div class="consultation-price">₹{{ appt.price }}</div>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
 
-                                    <td>
-                                        <span class="time-range-badge">
-                                            {{ appt.start_time }}
-                                            &ndash;
-                                            {{ appt.end_time }}
-                                        </span>
-                                    </td>
+                            <td>
+                                {% if appt.consultation_type == 'home' and appt.address %}
+                                    <div class="visit-address">{{ appt.address }}</div>
+                                {% elif appt.consultation_type == 'home' %}
+                                    <span class="text-muted">Not provided</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
 
-                                    <td>{{ appt.duration_minutes }} min</td>
+                            <td><span class="badge badge-light">{{ appt.doctor_room or '—' }}</span></td>
 
-                                    <td class="consultation-cell">
-                                        {% if appt.consultation_type == 'video' %}
-                                            <span class="consultation-type">
-                                                Video Visit
-                                            </span>
-                                        {% elif appt.consultation_type == 'phone' %}
-                                            <span class="consultation-type">
-                                                Phone Call
-                                            </span>
-                                        {% elif appt.consultation_type == 'in_person' %}
-                                            <span class="consultation-type">
-                                                In Person
-                                            </span>
-                                        {% elif appt.consultation_type == 'home' %}
-                                            <span class="consultation-type">
-                                                Home Visit
-                                            </span>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
+                            <td>
+                                {% if appt.status == 'SCHEDULED' %}
+                                    <span class="badge badge-success">Scheduled</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
 
-                                    <td>
-                                        {% if appt.price is not none %}
-                                            <div class="consultation-price">
-                                                ₹{{ appt.price }}
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-
-                                    <td>
-                                        {% if appt.consultation_type == 'home'
-                                              and appt.address %}
-                                            <div class="visit-address">
-                                                {{ appt.address }}
-                                            </div>
-                                        {% elif appt.consultation_type == 'home' %}
-                                            <span class="text-muted">
-                                                Not provided
-                                            </span>
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-
-                                    <td>
-                                        <span class="badge badge-light">
-                                            {{ appt.doctor_room or '—' }}
-                                        </span>
-                                    </td>
-
-                                    <td>
-                                        {% if appt.status == 'SCHEDULED' %}
-                                            <span class="badge badge-success">
-                                                Scheduled
-                                            </span>
-                                        {% else %}
-                                            <span class="badge badge-danger">
-                                                Cancelled
-                                            </span>
-                                        {% endif %}
-                                    </td>
-
-                                    <td>
-                                        {% if appt.status == 'SCHEDULED' %}
-                                            <button
-                                                type="button"
-                                                class="btn-cancel-small"
-                                                onclick="cancelAppointmentAction({{ appt.id }})">
-                                                Cancel
-                                            </button>
-                                        {% else %}
-                                            <span class="text-muted text-sm">
-                                                &mdash;
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr id="no-records-row">
-                                <td colspan="12" class="text-center py-8">
-                                    <div class="empty-state">
-                                        <div class="empty-icon">📂</div>
-                                        <p class="empty-text">
-                                            No appointment records found.
-                                        </p>
-                                        <a href="/book" class="btn btn-secondary mt-2">
-                                            Book an Appointment
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endif %}
+                            <td>
+                                {% if appt.status == 'SCHEDULED' %}
+                                    <button type="button" class="btn-cancel-small"
+                                            onclick="cancelAppointmentAction({{ appt.id }})">
+                                        Cancel
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted text-sm">&mdash;</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr id="no-records-row">
+                            <td colspan="12" class="text-center py-8">
+                                <div class="empty-state">
+                                    <div class="empty-icon">📂</div>
+                                    <p class="empty-text">No appointment records found.</p>
+                                    <a href="/book" class="btn btn-secondary mt-2">Book an Appointment</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -404,10 +339,7 @@
 
     <footer class="footer">
         <div class="footer-container">
-            <p>
-                CareSync &copy; 2026 &mdash; Smart Hospital Appointment
-                Scheduling System &bull; Built with Flask &amp; SQLite
-            </p>
+            <p>CareSync &copy; 2026 &mdash; Smart Hospital Appointment Scheduling System &bull; Built with Flask &amp; SQLite</p>
         </div>
     </footer>
 
