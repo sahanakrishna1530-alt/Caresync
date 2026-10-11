@@ -137,6 +137,20 @@ All 10 test cases verify:
    - Click **Cancel** on any scheduled appointment.
    - Notice the status badge dynamically changes to **Cancelled** and metrics update without reloading.
    - Returning to the booking portal, that previously booked slot is now available to be booked again.
+4. **Demonstrate Emergency Appointment Handling**:
+   - Open the appointment booking portal.
+   - Select the emergency option, if available.
+   - Enter the required patient and appointment details.
+   - Click **Confirm & Book Appointment**.
+   - Verify that the application applies its implemented emergency-handling rules and displays the appropriate result.
+
+5. **Reschedule an Existing Appointment**:
+   - Navigate to `/dashboard`.
+   - Find an existing scheduled appointment.
+   - Click **Reschedule**.
+   - Select a new available date or time, as supported by the application.
+   - Confirm the rescheduling request.
+   - Verify that the appointment details update correctly and that scheduling conflicts are prevented.
 ## Live Website
 
 **Try CareSync here:** [Open CareSync](https://ingredients-leg-flu-bass.trycloudflare.com)
