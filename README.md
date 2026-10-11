@@ -153,5 +153,5 @@ All 10 test cases verify:
    - Verify that the appointment details update correctly and that scheduling conflicts are prevented.
 ## Live Website
 
-**Try CareSync here:** [Open CareSync](https://ingredients-leg-flu-bass.trycloudflare.com)
+**Try CareSync here:** [Open CareSync](https://breakfast-identical-file-additional.trycloudflare.com)
 
